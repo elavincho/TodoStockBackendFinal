@@ -1182,7 +1182,6 @@ Durante el desarrollo de este proyecto se utilizaron herramientas de Inteligenci
 **Período:** 2026 - 1er Cuatrimestre  
 **Grupo:** 404Solution
 
-**Repositorio GitHub:** [https://github.com/IFTS29/404_Solutions_Entrega_Final.git](https://github.com/IFTS29/404_Solutions_Entrega_Final.git)  
 **Sistema Desplegado:** [https://404-solutions-entrega-final.vercel.app](https://404-solutions-entrega-final.vercel.app/login)
 
 ---
