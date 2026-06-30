@@ -1,3 +1,7 @@
+<img src="https://i.ibb.co/VYkx7wHV/ifts29-Logo.png" width="80" height="80" alt="ifts-29"/>
+
+# Proyecto Integrador
+
 # TodoStock S.A. - Sistema de Gestión Empresarial
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
