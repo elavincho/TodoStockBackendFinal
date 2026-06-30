@@ -1,0 +1,46 @@
+extends ../layout
+
+block contenido
+  h1= titulo
+  
+  .acciones-header(style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;")
+    a.btn-nuevo(href="/notas-credito/nuevo" style="background-color: #28a745; color: white; padding: 10px; text-decoration: none; border-radius: 4px;") + Nueva Nota de Crédito
+  
+  if notas && notas.length > 0
+    table
+      thead
+        tr
+          th N° Nota
+          th Cliente
+          th Fecha Emisión
+          th Conceptos
+          th Total
+          th Estatus
+          th Acciones
+      tbody
+        each nota in notas
+          tr
+            td= nota.numero
+            td= nota.clienteInfo.razonSocial
+            td= nota.fechaEmision.toLocaleDateString('es-AR')
+            td
+              if nota.conceptos && nota.conceptos.length > 0
+                | #{nota.conceptos.length} concepto(s)
+              else
+                | -
+            td $ #{nota.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+            td
+              span(class=`badge badge-${nota.estatus.toLowerCase()}`)= nota.estatus
+            td
+              div.acciones-container(style="display: flex; gap: 5px;")
+                a(href=`/notas-credito/ver/${nota._id}` style="padding: 5px 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px;") Ver
+                if nota.estatus !== 'Aplicada' && nota.estatus !== 'Anulada'
+                  form(action=`/notas-credito/aplicar/${nota._id}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Aplicar esta nota de crédito?')" style="padding: 5px 10px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;") Aplicar
+                if nota.estatus !== 'Anulada'
+                  form(action=`/notas-credito/anular/${nota._id}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Anular esta nota de crédito?')" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;") Anular
+                form(action=`/notas-credito/eliminar/${nota._id}` method="POST" style="display: inline;")
+                  button(type="submit" onclick="return confirm('¿Eliminar esta nota?')" style="padding: 5px 10px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;") Eliminar
+  else
+    p No hay notas de crédito registradas.

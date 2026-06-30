@@ -1,0 +1,42 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/proveedores') Volver
+  
+  h1= titulo
+  
+  div.acciones-header
+    a.btn-nuevo(href="/facturas-proveedor/nuevo") + Nueva Factura
+  
+  if facturas && facturas.length > 0
+    table
+      thead
+        tr
+          th N° Factura
+          th Proveedor
+          th Fecha Emisión
+          th Total
+          th Estatus
+          th Acciones
+      tbody
+        each factura in facturas
+          tr(class=factura.estatus === 'Anulada' ? 'estatus-anulado' : (factura.estatus === 'Pagada' ? 'estatus-pagado' : 'estatus-pendiente'))
+            td= factura.numero
+            td= factura.proveedorInfo.razonSocial
+            td= factura.fechaEmision.toLocaleDateString('es-AR')
+            td $ #{factura.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+            td
+              span(class=`badge badge-${factura.estatus.toLowerCase()}`)= factura.estatus
+            td
+              div.acciones-container(style="display: flex; gap: 5px;")
+                a(href=`/facturas-proveedor/ver/${factura._id}` style="padding: 5px 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px;") Ver
+                if factura.estatus !== 'Anulada' && factura.estatus !== 'Pagada'
+                  form(action=`/facturas-proveedor/anular/${factura._id}` method="POST" style="display: inline;")
+                    //- button(type="submit" onclick="return confirm('¿Anular esta factura?')" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;") Anular
+                if factura.estatus !== 'Pagada' && factura.estatus !== 'Anulada'
+                  //- a(href=`/ordenes-pago/nuevo?proveedorId=${factura.proveedorId}` style="padding: 5px 10px; background-color: #28a745; color: white; text-decoration: none; border-radius: 3px;") Pagar
+                form(action=`/facturas-proveedor/eliminar/${factura._id}` method="POST" style="display: inline;")
+                  button(type="submit" onclick="return confirm('¿Eliminar esta factura?')" style="padding: 5px 10px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;") Eliminar
+  else
+    p No hay facturas registradas.
+

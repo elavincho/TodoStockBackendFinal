@@ -1,0 +1,105 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/finanzas') Volver
+    
+    h1 💳 Cuentas por Pagar
+    
+    div.acciones-header
+        a.btn-nuevo(href="/ordenes-pago/nuevo") 💸 Nueva Orden de Pago
+    
+    if error
+        p.error= error
+    
+    //- Formulario de filtros
+    .filtros-container
+        form.filtros-form(method='GET' action='/finanzas/cuentas-pagar')
+            .filtro-fila
+                .filtro-grupo
+                    label(for='proveedorId') Proveedor:
+                    select#proveedorId(name='proveedorId')
+                        option(value='todos' selected=!filtros.proveedorId || filtros.proveedorId === 'todos') Todos los proveedores
+                        each p in todosLosProveedores
+                            - const nombreProv = p.tipoDoc === 'DNI' ? p.nombre : p.razonSocial
+                            option(value=p._id.toString() selected=filtros.proveedorId === p._id.toString()) #{nombreProv} (#{p.nroDoc})
+                .filtro-grupo
+                    label(for='tipoDoc') Tipo de documento:
+                    select#tipoDoc(name='tipoDoc')
+                        option(value='todos' selected=!filtros.tipoDoc || filtros.tipoDoc === 'todos') Todos
+                        option(value='factura' selected=filtros.tipoDoc === 'factura') Facturas
+                        option(value='orden' selected=filtros.tipoDoc === 'orden') Órdenes de Pago
+            
+            .filtro-fila
+                .filtro-grupo
+                    label(for='fechaDesde') Desde:
+                    input#fechaDesde(type='date' name='fechaDesde' value=filtros.fechaDesde || '')
+                .filtro-grupo
+                    label(for='fechaHasta') Hasta:
+                    input#fechaHasta(type='date' name='fechaHasta' value=filtros.fechaHasta || '')
+                .filtro-grupo.filtro-acciones
+                    label &nbsp;
+                    .filtro-botones
+                        button.btn-filtrar(type='submit') 🔍 Filtrar
+                        a.btn-limpiar(href='/finanzas/cuentas-pagar') 🔄 Limpiar
+    
+    //- Resumen total
+    .resumen-total.pagar
+        h3 Total por Pagar:
+        p.monto-total $ #{total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        p.detalle-total #{facturas.length} facturas
+    
+    //- Tabla de facturas
+    if facturas && facturas.length > 0
+        table.tabla-facturas
+            thead
+                tr
+                    th Número
+                    th Proveedor
+                    th CUIT/DNI
+                    th F. Emisión
+                    th F. Vencimiento
+                    th Monto
+                    th Estado
+                    th Días
+                    th Acciones
+            tbody
+                each factura in facturas
+                    - const hoy = new Date();
+                    - const vencimiento = new Date(factura.fechaVencimiento || factura.fechaEmision);
+                    - const diffTime = vencimiento - hoy;
+                    - const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    - const vencida = diffDays < 0;
+                    - const proveedorNombre = factura.proveedorId ? (factura.proveedorId.tipoDoc === 'DNI' ? factura.proveedorId.nombre : factura.proveedorId.razonSocial) : factura.proveedorInfo?.razonSocial || 'Proveedor desconocido';
+                    - const proveedorDoc = factura.proveedorId ? factura.proveedorId.nroDoc : factura.proveedorInfo?.cuit || 'N/A';
+                    
+                    tr(class=vencida ? 'fila-vencida' : '')
+                        td.numero-factura= factura.numero
+                        td= proveedorNombre
+                        td= proveedorDoc
+                        td= new Date(factura.fechaEmision).toLocaleDateString('es-AR')
+                        td= factura.fechaVencimiento ? new Date(factura.fechaVencimiento).toLocaleDateString('es-AR') : '-'
+                        td.monto $ #{factura.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        td
+                            span.badge(class=`badge-${factura.estatus.toLowerCase()}`)= factura.estatus
+                        td(class=vencida ? 'dias-vencido' : 'dias-normal')
+                            if vencida
+                                span.vencido ⚠️ #{Math.abs(diffDays)}d vencido
+                            else if diffDays <= 7
+                                span.proximo-vencer 📅 #{diffDays}d
+                            else
+                                span #{diffDays}d
+                        td
+                            .acciones-container
+                                a.btn-ver(href=`/facturas-proveedor/ver/${factura._id}`) Ver
+                                - const provId = factura.proveedorId ? factura.proveedorId._id.toString() : ''
+                                a.btn-ver(href=`/ordenes-pago/nuevo?proveedorId=${provId}` style="background-color: #28a745; color: white;") 💸 Pagar
+    else
+        p.sin-datos No hay facturas por pagar con los filtros seleccionados.
+    
+    //- Leyenda
+    .leyenda
+        p
+            span.badge.badge-pendiente Pendiente
+            |  = Sin pagar  |  
+            span.vencido ⚠️
+            |  = Vencida

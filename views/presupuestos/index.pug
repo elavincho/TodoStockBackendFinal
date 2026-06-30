@@ -1,0 +1,54 @@
+extends ../layout
+
+block contenido
+  h1= titulo
+  
+  .acciones-header(style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;")
+    a.btn-nuevo(href="/presupuestos/nuevo" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;") + Nuevo Presupuesto
+  
+  if presupuestos && presupuestos.length > 0
+    table
+      thead
+        tr
+          th N° Presupuesto
+          th Cliente
+          th Fecha Emisión
+          th Fecha Vencimiento
+          th Total
+          th Estatus
+          th Acciones
+      tbody
+        each presupuesto in presupuestos
+          tr
+            td= presupuesto.numero
+            td= presupuesto.clienteInfo.razonSocial
+            td= presupuesto.fechaEmision.toLocaleDateString('es-AR')
+            td= presupuesto.fechaValidez.toLocaleDateString('es-AR')
+            td $ #{presupuesto.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+            td
+              if presupuesto.estatus === 'Pendiente'
+                span.badge.badge-pendiente Pendiente
+              else if presupuesto.estatus === 'Aprobado'
+                span.badge.badge-aprobado Aprobado
+              else if presupuesto.estatus === 'Rechazado'
+                span.badge.badge-rechazado Rechazado
+              else if presupuesto.estatus === 'Vencido'
+                span.badge.badge-vencido Vencido
+              else if presupuesto.estatus === 'Convertido'
+                span.badge.badge-convertido Convertido
+            td
+              div.acciones-container(style="display: flex; gap: 5px; flex-wrap: wrap;")
+                a(href=`/presupuestos/ver/${presupuesto._id}` style="padding: 5px 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px;") Ver
+                if presupuesto.estatus === 'Pendiente'
+                  form(action=`/presupuestos/aprobar/${presupuesto._id}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Aprobar este presupuesto?')" style="padding: 5px 10px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;") Aprobar
+                  form(action=`/presupuestos/rechazar/${presupuesto._id}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Rechazar este presupuesto?')" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;") Rechazar
+                if presupuesto.estatus === 'Aprobado'
+                  form(action=`/presupuestos/convertir/${presupuesto._id}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Convertir este presupuesto en factura?')" style="padding: 5px 10px; background-color: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;") Convertir
+                if presupuesto.estatus !== 'Convertido'
+                  form(action=`/presupuestos/eliminar/${presupuesto._id}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Eliminar este presupuesto?')" style="padding: 5px 10px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;") Eliminar
+  else
+    p No hay presupuestos registrados.

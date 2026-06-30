@@ -1,0 +1,69 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/clientes/listar') Volver
+
+    h1 Editar Cliente: #{cliente.tipoDoc === 'DNI' ? cliente.nombre : cliente.razonSocial}
+
+    form(action=`/clientes/editar/${cliente._id}` method="POST")
+        div
+            label(for="tipoDoc") Tipo de Documento:
+            select(id="tipoDoc" name="tipoDoc")
+                option(value="DNI" selected=cliente.tipoDoc === "DNI") DNI
+                option(value="CUIT" selected=cliente.tipoDoc === "CUIT") CUIT
+
+        div#campo-nombre
+            label(for="nombre") Nombre:
+            input(type="text" id="nombre" name="nombre" value=cliente.nombre)
+
+        div#campo-razonSocial
+            label(for="razonSocial") Razón Social:
+            input(type="text" id="razonSocial" name="razonSocial" value=cliente.razonSocial)
+
+        div
+            label(for="nroDoc") Número de Documento:
+            input(type="text" id="nroDoc" name="nroDoc" required value=cliente.nroDoc)
+
+        div
+            label(for="email") Email:
+            input(type="email" id="email" name="email" value=cliente.email)
+
+        div
+            label(for="telefono") Teléfono:
+            input(type="text" id="telefono" name="telefono" value=cliente.telefono)
+
+        div
+            label(for="direccion") Dirección:
+            input(type="text" id="direccion" name="direccion" value=cliente.direccion)
+
+        //- div
+        //-     label(for="saldoCuentaCorriente") Saldo de Cuenta Corriente ($):
+        //-     input(type="number" id="saldoCuentaCorriente" name="saldoCuentaCorriente" step="0.01" value=cliente.saldoCuentaCorriente required)
+
+        div.form-actions
+            button(type="submit").btn-guardar Guardar Cambios
+            a(href="/clientes/listar").btn-cancelar Cancelar
+
+    script.
+        const select = document.getElementById('tipoDoc');
+        const campoNombre = document.getElementById('campo-nombre');
+        const campoRazon = document.getElementById('campo-razonSocial');
+        const inputNombre = document.getElementById('nombre');
+        const inputRazon = document.getElementById('razonSocial');
+
+        function actualizarCampos() {
+            if (select.value === 'CUIT') {
+                campoNombre.style.display = 'none';
+                campoRazon.style.display = 'block';
+                inputNombre.removeAttribute('required');
+                inputRazon.setAttribute('required', 'true');
+            } else {
+                campoNombre.style.display = 'block';
+                campoRazon.style.display = 'none';
+                inputRazon.removeAttribute('required');
+                inputNombre.setAttribute('required', 'true');
+            }
+        }
+
+        select.addEventListener('change', actualizarCampos);
+        actualizarCampos();

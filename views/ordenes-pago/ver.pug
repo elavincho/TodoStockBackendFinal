@@ -1,0 +1,207 @@
+extends ../layout
+
+block contenido
+  style.
+    @media print {
+      @page {margin: 10mm;}
+      .no-print { display: none; }
+      nav { display:none; }
+      body { margin: 0; padding: 20px; }
+      .orden-pago { box-shadow: none;
+        border: none;
+        max-width: 100%;
+        padding: 10px;
+        font-size: 0.75rem;}
+      footer { display:none; }
+    }
+    .orden-pago {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      font-family: monospace;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .empresa-nombre { font-size: 1.5rem; font-weight: bold; }
+    .empresa-info { font-size: 0.8rem; color: #666; }
+    .titulo-orden { font-size: 1.3rem; font-weight: bold; text-align: center; margin: 15px 0; }
+    .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .info-box { border: 1px solid #ccc; padding: 10px; width: 48%; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+    th { background-color: #f2f2f2; text-align: center; }
+    .text-left { text-align: left; }
+    .totales { margin-top: 20px; text-align: right; }
+    .firmas { margin-top: 40px; display: flex; justify-content: space-between; }
+    .firma-linea { text-align: center; width: 30%; }
+    .estatus { font-weight: bold; padding: 5px; text-align: center; border-radius: 4px; }
+    .estatus-Pendiente { background-color: #ffc107; color: #333; }
+    .estatus-Pagado { background-color: #28a745; color: white; }
+    .estatus-Anulado { background-color: #dc3545; color: white; }
+
+  .orden-pago
+    .header
+      .empresa-nombre TodoStock S.A.
+      .empresa-info CUIT: 30-12345678-1
+      .empresa-info Dirección: Av. Libertador 1000 - Avellaneda - Bs. As. - Argentina.
+      .empresa-info Teléfono: +54 11 2222 3333
+      .empresa-info info@todostock.com.ar
+
+    .titulo-orden ORDEN DE PAGO
+
+    .info-grid
+      .info-box
+        div
+          strong Fecha Impresión: 
+          | #{orden.fechaImpresion ? orden.fechaImpresion.toLocaleString('es-AR') : new Date().toLocaleString('es-AR')}
+        div
+          strong Fecha Emisión: 
+          | #{orden.fechaEmision.toLocaleDateString('es-AR')}
+        div
+          strong Estatus: 
+          span(class=`estatus estatus-${orden.estatus}`)= orden.estatus
+        div
+          strong Número: 
+          | #{String(orden.numero).padStart(10, '0')}
+
+      .info-box
+        div
+          strong Beneficiario/Proveedor: 
+          | #{orden.proveedorInfo.nombre}
+        div
+          strong CUIT: 
+          | #{orden.proveedorInfo.rif || 'N/A'}
+        div
+          strong Dirección: 
+          | #{orden.proveedorInfo.direccion || 'N/A'}
+        div
+          strong Teléfono: 
+          | #{orden.proveedorInfo.telefono || 'N/A'}
+
+    // Facturas pagadas
+    if facturasRelacionadas && facturasRelacionadas.length > 0
+      fieldset
+      legend Facturas Pagadas
+      table
+        thead
+          tr
+            th N° Factura
+            th Fecha
+            th Total
+        tbody
+          each factura in facturasRelacionadas
+            tr
+              td= factura.numero
+              td= factura.fecha ? factura.fecha.toLocaleDateString('es-AR') : '-'
+              td $ #{factura.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    br
+    
+    // Formas de pago
+    if orden.formasPago && orden.formasPago.length > 0
+      table
+        thead
+          tr
+            th Forma de pago
+            th Referencia
+            th Caja/Banco: Cuenta
+            th Fecha
+            th Monto Neto
+        tbody
+          each pago in orden.formasPago
+            tr
+              td= pago.formaPago
+              td= pago.referencia || '-'
+              td= pago.bancoCuenta || '-'
+              td= new Date(pago.fecha).toLocaleDateString('es-AR')
+              td= pago.montoNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})
+
+    br
+
+    // Totales finales
+    .totales
+      div
+        strong Subtotal: 
+        | $ #{orden.subtotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong Retención: 
+        | $ #{orden.totalRetencion.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong Impuesto: 
+        | $ #{orden.totalImpuesto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      hr
+      div
+        strong Monto a Pagar: 
+        | $ #{orden.montoAPagar.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    // Observaciones
+    if orden.observaciones
+      .observaciones
+        strong Observaciones:
+        p= orden.observaciones
+
+    br
+    // Firmas
+    .firmas
+      .firma-linea
+        | 
+        if orden.elaboradoPor
+          br
+          strong= orden.elaboradoPor
+        hr
+        | Firma
+
+      .firma-linea
+        | 
+        if orden.aprobadoPor
+          br
+          strong= orden.aprobadoPor
+        hr
+        | Firma
+
+      .firma-linea
+        | 
+        if orden.recibioConforme
+          br
+          strong= orden.recibioConforme
+        hr
+        | Firma
+
+    .firmas
+      .firma-linea
+        | 
+        if orden.cedula
+          br
+          strong= orden.cedula
+        hr
+        | Elaborado por
+
+      .firma-linea
+        | 
+        if orden.cedula
+          br
+          strong= orden.cedula
+        hr
+        | Aprobado por
+
+      .firma-linea
+        | 
+        if orden.recibioConforme
+          br
+          strong= orden.recibioConforme
+        hr
+        | Recibido por
+
+    .footer(style="margin-top: 20px; text-align: center; font-size: 0.7rem; border-top: 1px solid #ccc; padding-top: 10px;")
+      | https://todostock.com.ar 
+
+  // Botones de acción
+  .no-print(style="text-align: center; margin-top: 20px;")
+    button(onclick="window.print()" style="margin-right: 10px; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") 🖨️ Imprimir
+    a(href="/ordenes-pago" style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;") Volver al listado

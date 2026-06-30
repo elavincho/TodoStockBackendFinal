@@ -1,0 +1,44 @@
+extends ../layout
+
+block contenido
+
+  .welcome-banner
+    if usuario
+      h1 ¡Bienvenido, #{usuario.nombreCompleto}!
+      h2.sub-titulo Has iniciado sesión como <strong>#{usuario.rol}
+    else
+      h1 Error de sesión
+      p El usuario no está disponible. Por favor, 
+        a(href="/login") inicia sesión nuevamente
+
+    br
+
+    .dashboard-cards
+      a.card.card-link(href="/productos")
+        .card-icon 📦
+        .card-value= totalProductos
+        .card-title Productos
+        .card-action Ver todos →
+      a.card.card-link(href="/clientes")
+        .card-icon 👤
+        .card-value= totalClientes
+        .card-title Clientes
+        .card-action Ver todos →
+      a.card.card-link(href="/proveedores")
+        .card-icon 🏢
+        .card-value= totalProveedores
+        .card-title Proveedores
+        .card-action Ver todos →
+      a.card.card-link(href="/ordenes-pago")
+        .card-icon 💵
+        .card-value= totalOrdenesPago
+        .card-title Órdenes de Pago
+        .card-action Ver todos →
+      a.card.card-link(href="/facturas-proveedor")
+        .card-icon 📋
+        .card-value= facturasPendientes
+        .card-title Facturas Pendientes
+        .card-action Ver todas →
+
+  .text-center.logout-section
+    a(href="/logout" class="btn-logout") Cerrar Sesión

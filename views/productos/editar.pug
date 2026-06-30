@@ -1,0 +1,30 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/productos') Volver
+    
+    h1 Editar Producto: #{producto.nombre}
+
+    form(action=`/productos/editar/${producto._id}` method="POST")
+        div
+            label Nombre:
+            input(type="text" name="nombre" value=producto.nombre required)
+        div
+            label Categoría:
+            select(name="categoria" required)
+                option(value="Limpieza Industrial" selected=producto.categoria === "Limpieza Industrial") Limpieza Industrial
+                option(value="Desinfección" selected=producto.categoria === "Desinfección") Desinfección
+                option(value="Seguridad e Higiene" selected=producto.categoria === "Seguridad e Higiene") Seguridad e Higiene
+        div
+            label Precio:
+            input(type="number" name="precio" step="0.01" value=producto.precio required)
+        div
+            label Stock Actual:
+            input(type="number" name="stockActual" value=producto.stockActual required)
+        div
+            label Stock Mínimo:
+            input(type="number" name="stockMinimo" value=producto.stockMinimo required)
+        
+        div.form-actions
+            button(type="submit").btn-guardar Guardar Cambios
+            a(href="/productos").btn-cancelar Cancelar

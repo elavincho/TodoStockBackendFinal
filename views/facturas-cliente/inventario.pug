@@ -1,0 +1,34 @@
+extends ../layout
+
+block contenido
+  h1 Inventario de Productos
+  
+  if mensajeExito
+    .success-message= mensajeExito
+  
+  if productos && productos.length > 0
+    table
+      thead
+        tr
+          th ID
+          th Nombre
+          th Categoría
+          th Precio
+          th Stock Actual
+          th Stock Mínimo
+          th Estado
+      tbody
+        each producto in productos
+          tr(class=producto.stockActual <= producto.stockMinimo ? 'alert-stock-bajo' : '')
+            td= producto.id
+            td= producto.nombre
+            td= producto.categoria
+            td= '$' + producto.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})
+            td= producto.stockActual
+            td= producto.stockMinimo
+            td(style=`color: ${producto.colorEstado}; font-weight: bold;`)= producto.estado
+  else
+    p No hay productos registrados.
+  
+  .acciones(style="margin-top: 20px;")
+    a.btn-cancelar(href="/facturas-cliente") Volver a Facturas

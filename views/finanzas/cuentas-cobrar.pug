@@ -1,0 +1,154 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/finanzas') Volver
+    
+    h1 💰 Cuentas por Cobrar
+    
+    if error
+        p.error= error
+    
+    //- Formulario de filtros
+    .filtros-container
+        form.filtros-form(method='GET' action='/finanzas/cuentas-cobrar')
+            .filtro-fila
+                .filtro-grupo
+                    label(for='clienteId') Cliente:
+                    select#clienteId(name='clienteId')
+                        option(value='todos' selected=!filtros.clienteId || filtros.clienteId === 'todos') Todos los clientes
+                        each c in todosLosClientes
+                            - const nombreCliente = c.tipoDoc === 'DNI' ? c.nombre : c.razonSocial
+                            option(value=c._id.toString() selected=filtros.clienteId === c._id.toString()) #{nombreCliente} (#{c.nroDoc})
+                .filtro-grupo
+                    label(for='tipoDoc') Tipo de documento:
+                    select#tipoDoc(name='tipoDoc')
+                        option(value='todos' selected=!filtros.tipoDoc || filtros.tipoDoc === 'todos') Todos
+                        option(value='factura' selected=filtros.tipoDoc === 'factura') Facturas
+                        option(value='credito' selected=filtros.tipoDoc === 'credito') Notas de Crédito
+                        option(value='debito' selected=filtros.tipoDoc === 'debito') Notas de Débito
+            
+            .filtro-fila
+                .filtro-grupo
+                    label(for='fechaDesde') Desde:
+                    input#fechaDesde(type='date' name='fechaDesde' value=filtros.fechaDesde || '')
+                .filtro-grupo
+                    label(for='fechaHasta') Hasta:
+                    input#fechaHasta(type='date' name='fechaHasta' value=filtros.fechaHasta || '')
+                .filtro-grupo.filtro-acciones
+                    label &nbsp;
+                    .filtro-botones
+                        button.btn-filtrar(type='submit') 🔍 Filtrar
+                        a.btn-limpiar(href='/finanzas/cuentas-cobrar') 🔄 Limpiar
+    
+    //- Resumen total
+    .resumen-total
+        h3 Total por Cobrar:
+        p.monto-total $ #{total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        p.detalle-total #{clientes.length} clientes
+    
+    //- Desglose del cálculo
+    .resumen-desglose
+        p Facturas: $ #{sumaFacturas.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        if totalNotasCredito > 0
+            p - Notas de Crédito: $ #{totalNotasCredito.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+        if totalNotasDebito > 0
+            p + Notas de Débito: $ #{totalNotasDebito.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+    
+    //- Tarjetas por cliente
+    if clientes && clientes.length > 0
+        each cliente in clientes
+            .tarjeta-cliente
+                .tarjeta-cliente-header
+                    .cliente-info
+                        h3.cliente-nombre 👤 #{cliente.nombre}
+                        span.cliente-doc #{cliente.documento}
+                    .cliente-saldo
+                        a.btn-nuevo(href=`/finanzas/cobrar?clienteId=${cliente.clienteId || ''}` style="margin-right: 10px; font-size: 0.85rem;") 💰 Cobrar
+                        span.saldo-label Saldo:
+                        span.saldo-valor(class=cliente.saldoNeto > 0 ? 'positivo' : '') $ #{cliente.saldoNeto.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                
+                .tarjeta-cliente-body
+                    //- Facturas del cliente
+                    if cliente.facturas.length > 0
+                        h4.seccion-doc 🧾 Facturas (#{cliente.facturas.length})
+                        table.tabla-facturas
+                            thead
+                                tr
+                                    th Número
+                                    th F. Emisión
+                                    th F. Vencimiento
+                                    th Monto
+                                    th Días
+                                    th Acciones
+                            tbody
+                                each factura in cliente.facturas
+                                    - const hoy = new Date();
+                                    - const vencimiento = new Date(factura.fechaVencimiento || factura.fechaEmision);
+                                    - const diffTime = vencimiento - hoy;
+                                    - const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                    - const vencida = diffDays < 0;
+                                    tr(class=vencida ? 'fila-vencida' : '')
+                                        td.numero-factura= factura.numero
+                                        td= new Date(factura.fechaEmision).toLocaleDateString('es-AR')
+                                        td= factura.fechaVencimiento ? new Date(factura.fechaVencimiento).toLocaleDateString('es-AR') : '-'
+                                        td.monto $ #{factura.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        td(class=vencida ? 'dias-vencido' : 'dias-normal')
+                                            if vencida
+                                                span.vencido ⚠️ #{Math.abs(diffDays)}d
+                                            else if diffDays <= 7
+                                                span.proximo-vencer 📅 #{diffDays}d
+                                            else
+                                                span #{diffDays}d
+                                        td
+                                            .acciones-container
+                                                a.btn-ver(href=`/facturas-cliente/ver/${factura._id}`) Ver
+                    
+                    //- Notas de crédito del cliente
+                    if cliente.notasCredito.length > 0
+                        h4.seccion-doc.seccion-credito ➖ Notas de Crédito (#{cliente.notasCredito.length}) — Total: -$ #{cliente.totalNC.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        table.tabla-facturas
+                            thead
+                                tr
+                                    th Número
+                                    th F. Emisión
+                                    th Monto
+                                    th Acciones
+                            tbody
+                                each nc in cliente.notasCredito
+                                    tr
+                                        td.numero-factura= nc.numero
+                                        td= new Date(nc.fechaEmision).toLocaleDateString('es-AR')
+                                        td.monto(style="color: #dc3545;") -$ #{nc.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        td
+                                            .acciones-container
+                                                a.btn-ver(href=`/notas-credito/ver/${nc._id}`) Ver
+                    
+                    //- Notas de débito del cliente
+                    if cliente.notasDebito.length > 0
+                        h4.seccion-doc.seccion-debito ➕ Notas de Débito (#{cliente.notasDebito.length}) — Total: +$ #{cliente.totalND.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        table.tabla-facturas
+                            thead
+                                tr
+                                    th Número
+                                    th F. Emisión
+                                    th Monto
+                                    th Acciones
+                            tbody
+                                each nd in cliente.notasDebito
+                                    tr
+                                        td.numero-factura= nd.numero
+                                        td= new Date(nd.fechaEmision).toLocaleDateString('es-AR')
+                                        td.monto(style="color: #28a745;") +$ #{nd.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        td
+                                            .acciones-container
+                                                a.btn-ver(href=`/notas-debito/ver/${nd._id}`) Ver
+    else
+        p.sin-datos No hay cuentas por cobrar con los filtros seleccionados.
+    
+    //- Leyenda
+    .leyenda
+        p
+            span.badge.badge-pendiente Pendiente
+            |  = Sin cobrar  |  
+            span.vencido ⚠️
+            |  = Vencida

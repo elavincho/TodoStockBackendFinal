@@ -1,0 +1,74 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/ordenes-pago') Volver
+  
+  h1= titulo
+
+  if error
+    .error-msg= error
+
+  form(action="/ordenes-pago/nuevo" method="POST" id="formOrdenPago")
+    // Información del Proveedor
+    fieldset
+      legend Datos del Proveedor
+      div
+        label(for="proveedorId") Proveedor:
+        select(name="proveedorId" id="proveedorId" required)
+          option(value="") Seleccione un proveedor
+          each proveedor in proveedores
+            - const provIdStr = proveedor._id.toString()
+            option(value=provIdStr selected=(preselectedProveedorId && preselectedProveedorId === provIdStr) || (datos && datos.proveedorId === provIdStr))
+              | #{proveedor.tipoDoc === 'DNI' ? proveedor.nombre : proveedor.razonSocial} - #{proveedor.nroDoc}
+
+      // Botón para cargar facturas
+      button(type="button" id="cargarFacturas" style="margin-top: 10px;") Cargar Facturas Pendientes
+
+    // Listado de facturas pendientes
+    fieldset(id="facturasContainer" style="display: none;")
+      legend Facturas Pendientes
+      div(id="facturasListado")
+        p Seleccione un proveedor y haga clic en "Cargar Facturas"
+
+      div(style="margin-top: 15px;")
+        label
+          input(type="checkbox" id="seleccionarTodas")
+          |  Seleccionar todas
+
+      div(style="margin-top: 10px; font-weight: bold;")
+        span Total seleccionado: $ 
+        span(id="totalSeleccionado") 0.00
+
+    // Forma de Pago
+    fieldset
+      legend Forma de Pago
+      div
+        label(for="formaPago") Forma de Pago:
+        select(name="formaPago" id="formaPago" required)
+          option(value="Transferencia") Transferencia
+          option(value="Efectivo") Efectivo
+          option(value="Cheque") Cheque
+          option(value="Tarjeta") Tarjeta
+
+      div
+        label(for="referencia") Referencia:
+        input(type="text" name="referencia" id="referencia" value=datos ? datos.referencia : '')
+
+      div
+        label(for="bancoCuenta") Banco/Cuenta:
+        input(type="text" name="bancoCuenta" id="bancoCuenta" value=datos ? datos.bancoCuenta : '')
+
+      div
+        label(for="fechaPago") Fecha de Pago:
+        input(type="date" name="fechaPago" id="fechaPago" required value=datos ? datos.fechaPago : new Date().toISOString().split('T')[0])
+
+      div
+        label(for="montoAPagar") Monto a Pagar:
+        input(type="number" step="0.01" name="montoAPagar" id="montoAPagar" readonly required style="background-color: #f5f5f5;")
+
+    div.form-actions
+      button(type="submit").btn-guardar Generar Orden de Pago
+      a(href="/ordenes-pago").btn-cancelar Cancelar
+
+  block scripts
+    script(src="/js/script.js")

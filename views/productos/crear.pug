@@ -1,0 +1,37 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/productos') Volver
+    
+    h1 Registrar Nuevo Producto
+
+    if error
+        span.error-msg= error
+
+    form(action="/productos/nuevo" method="POST")
+        div
+            label(for="nombre") Nombre del Producto:
+            input(type="text" name="nombre", required=true, value=datos ? datos.nombre : '')
+
+        div
+            label(for="categoria") Categoría:
+            select(name="categoria")
+                option(value="Limpieza Industrial" selected=datos && datos.categoria === "Limpieza Industrial") Limpieza Industrial
+                option(value="Desinfección" selected=datos && datos.categoria === "Desinfección") Desinfección
+                option(value="Seguridad e Higiene" selected=datos && datos.categoria === "Seguridad e Higiene") Seguridad e Higiene
+
+        div
+            label(for="precio") Precio:
+            input(type="number" name="precio" step="0.01", required=true, value=datos ? datos.precio : '')
+
+        div
+            label(for="stockActual") Stock Inicial:
+            input(type="number" name="stockActual", required=true, value=datos ? datos.stockActual : '')
+
+        div
+            label(for="stockMinimo") Stock Mínimo (Alerta):
+            input(type="number" name="stockMinimo", required=true, value=datos ? datos.stockMinimo : '')
+
+        div.form-actions
+            button(type="submit").btn-guardar Guardar Producto
+            a(href="/").btn-cancelar Cancelar

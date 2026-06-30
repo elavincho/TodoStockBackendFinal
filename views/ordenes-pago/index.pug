@@ -1,0 +1,44 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/proveedores') Volver
+  
+  h1= titulo
+  
+  div.acciones-header
+    a.btn-nuevo(href="/ordenes-pago/nuevo") + Nueva Orden de Pago
+  
+  if ordenes && ordenes.length > 0
+    table
+      thead
+        tr
+          th N° Orden
+          th Proveedor
+          th Fecha Emisión
+          th Monto
+          th Estatus
+          th Acciones
+      tbody
+        each orden in ordenes
+          tr(class=orden.estatus === 'Anulado' ? 'estatus-anulado' : (orden.estatus === 'Pagado' ? 'estatus-pagado' : 'estatus-pendiente'))
+            td= orden.numero
+            td= orden.proveedorInfo.nombre
+            td= orden.fechaEmision.toLocaleDateString('es-AR')
+            td $ #{orden.montoAPagar.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+            td
+              span(class=`badge badge-${orden.estatus.toLowerCase()}`)= orden.estatus
+            td
+              div.acciones-container
+                a(href=`/ordenes-pago/ver/${orden.numero}`) Ver
+                if orden.estatus !== 'Anulado' && orden.estatus !== 'Pagado'
+                  form(action=`/ordenes-pago/anular/${orden.numero}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Anular esta orden?')") Anular
+                if orden.estatus !== 'Pagado' && orden.estatus !== 'Anulado'
+                  form(action=`/ordenes-pago/cambiar-estatus/${orden.numero}` method="POST" style="display: inline;")
+                    input(type="hidden" name="estatus" value="Pagado")
+                    button(type="submit" onclick="return confirm('¿Marcar como pagada?')" style="background-color: #28a745;") Pagar
+                form(action=`/ordenes-pago/eliminar/${orden.numero}` method="POST" style="display: inline;")
+                  button(type="submit" onclick="return confirm('¿Eliminar esta orden?')" style="background-color: #dc3545;") Eliminar
+  else
+    p No hay órdenes de pago registradas.
+

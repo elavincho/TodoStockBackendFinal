@@ -1,0 +1,20 @@
+extends layout
+
+block contenido
+  .error-page-container
+    .error-content
+      .error-icon
+        if errorCode === 404
+          | 🔍
+        else
+          | ⚠️
+      
+      .error-code= errorCode
+      
+      h1.error-title= errorMessage
+      
+      p.error-description= errorDescription
+      
+      .error-actions
+        a.btn-error-primary(href=backLink) Volver al inicio
+        a.btn-error-secondary(href="/") Ir a la página principal

@@ -1,0 +1,40 @@
+extends ../layout
+
+block contenido
+  .body-login
+    .login-container
+      .login-header
+        h1 TodoStock S.A.
+        p.sub-titulo Sistema de Gestión Empresarial
+
+      .login-body
+        if error
+          .error-message= error
+
+        if mensajeExito
+          .success-message= mensajeExito
+
+        form(action="/login" method="POST")
+          .form-group
+            label(for="username") Usuario o Email
+            input(type="text" 
+              id="username" 
+              name="username" 
+              required 
+              autofocus
+              placeholder="Ingrese su usuario o email"
+              value=datos ? datos.username : '')
+
+          .form-group
+            label(for="password") Contraseña
+            input(type="password" 
+              id="password" 
+              name="password" 
+              required
+              placeholder="Ingrese su contraseña")
+
+          button(type="submit" class="btn-login") Iniciar Sesión
+
+        .register-link
+          | ¿No tienes una cuenta? 
+          a(href="/register") Regístrate aquí

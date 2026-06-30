@@ -1,0 +1,137 @@
+extends ../layout
+
+block contenido
+  style.
+    @media print {
+      .no-print { display: none; }
+      nav { display:none; }
+      body { margin: 0; padding: 20px; }      
+      footer { display:none; }
+    }
+    .recibo-cobro {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      font-family: monospace;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .empresa-nombre { font-size: 1.5rem; font-weight: bold; }
+    .empresa-info { font-size: 0.8rem; color: #666; }
+    .titulo-recibo { font-size: 1.3rem; font-weight: bold; text-align: center; margin: 15px 0; }
+    .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .info-box { border: 1px solid #ccc; padding: 10px; width: 48%; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+    th { background-color: #f2f2f2; text-align: center; }
+    .text-left { text-align: left; }
+    .totales { margin-top: 20px; text-align: right; }
+    .estatus { font-weight: bold; padding: 5px; text-align: center; border-radius: 4px; }
+    .estatus-Emitido { background-color: #28a745; color: white; }
+    .estatus-Anulado { background-color: #dc3545; color: white; }
+
+  .recibo-cobro
+    .header
+      .empresa-nombre TodoStock S.A.
+      .empresa-info CUIT: 30-12345678-1
+      .empresa-info Dirección: Av. Libertador 1000 - Avellaneda - Bs. As. - Argentina.
+      .empresa-info Teléfono: +54 11 2222 3333
+      .empresa-info info@todostock.com.ar
+
+    .titulo-recibo RECIBO DE COBRO
+
+    .info-grid
+      .info-box
+        div
+          strong Fecha Emisión:&nbsp;
+          | #{recibo.fechaEmision.toLocaleDateString('es-AR')}
+        div
+          strong Estatus:&nbsp;
+          span(class=`estatus estatus-${recibo.estatus}`)= recibo.estatus
+        div
+          strong Número:&nbsp;
+          | #{String(recibo.numero).padStart(10, '0')}
+        if recibo.recibidoPor
+          div
+            strong Recibido Por:&nbsp;
+            | #{recibo.recibidoPor}
+
+      .info-box
+        div
+          strong Cliente:&nbsp;
+          | #{recibo.clienteInfo.nombre}
+        div
+          strong CUIT/DNI:&nbsp;
+          | #{recibo.clienteInfo.cuit || 'N/A'}
+        div
+          strong Dirección:&nbsp;
+          | #{recibo.clienteInfo.direccion || 'N/A'}
+        div
+          strong Teléfono:&nbsp;
+          | #{recibo.clienteInfo.telefono || 'N/A'}
+
+    //- Facturas cobradas
+    if recibo.facturasCobradas && recibo.facturasCobradas.length > 0
+      fieldset
+        legend Facturas Cobradas
+      table
+        thead
+          tr
+            th N° Factura
+            th Fecha
+            th Total
+        tbody
+          each factura in recibo.facturasCobradas
+            tr
+              td= factura.numero
+              td= factura.fecha ? new Date(factura.fecha).toLocaleDateString('es-AR') : '-'
+              td $ #{factura.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    br
+
+    //- Formas de cobro
+    if recibo.formasPago && recibo.formasPago.length > 0
+      table
+        thead
+          tr
+            th Forma de Cobro
+            th Referencia
+            th Banco/Cuenta
+            th Fecha
+            th Monto
+        tbody
+          each pago in recibo.formasPago
+            tr
+              td= pago.formaPago
+              td= pago.referencia || '-'
+              td= pago.bancoCuenta || '-'
+              td= new Date(pago.fecha).toLocaleDateString('es-AR')
+              td $ #{pago.montoNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    br
+
+    //- Total
+    .totales
+      div
+        strong Total Cobrado:&nbsp;
+        | $ #{recibo.montoCobrado.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    //- Observaciones
+    if recibo.observaciones
+      .observaciones(style="margin-top: 20px;")
+        strong Observaciones:
+        p= recibo.observaciones
+
+    .footer(style="margin-top: 20px; text-align: center; font-size: 0.7rem; border-top: 1px solid #ccc; padding-top: 10px;")
+      | https://todostock.com.ar
+
+  //- Botones de acción
+  .no-print(style="text-align: center; margin-top: 20px;")
+    button(onclick="window.print()" style="margin-right: 10px; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") 🖨️ Imprimir
+    a(href="/recibos-cobro" style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;") Volver al listado

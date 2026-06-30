@@ -1,0 +1,278 @@
+extends ../layout
+
+block contenido
+  h1= titulo
+
+  if error
+    .error-msg= error
+
+  .info-message(style="background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 12px; margin-bottom: 20px; border-radius: 4px;")
+    p(style="margin: 0;")
+      strong 💡 Información: 
+      | El presupuesto NO afecta el stock ni el saldo del cliente. Una vez aprobado, puede convertirse en factura.
+
+  form(action="/presupuestos/nuevo" method="POST" id="formPresupuesto")
+    // Información del Presupuesto
+    fieldset
+      legend Datos del Presupuesto
+      div(style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;")
+        div
+          label(for="fechaEmision") Fecha de Emisión:
+          input(type="date" name="fechaEmision" id="fechaEmision" required value=datos ? datos.fechaEmision : new Date().toISOString().split('T')[0])
+        div
+          label(for="clienteId") Cliente:
+          select(name="clienteId" id="clienteId" required)
+            option(value="") Seleccione un cliente
+            each cliente in clientes
+              option(value=cliente.id selected=(datos && datos.clienteId == cliente.id))
+                | #{cliente.tipoDoc === 'DNI' ? cliente.nombre : cliente.razonSocial} - #{cliente.nroDoc}
+        div
+          label(for="puntoVenta") Punto de Venta:
+          input(type="number" name="puntoVenta" id="puntoVenta" value=datos ? datos.puntoVenta : '1')
+        div
+          label(for="numero") Número de Presupuesto:
+          input(type="number" name="numero" id="numero" required value=datos ? datos.numero : '')
+        div
+          label(for="fechaValidez") Fecha de Vencimiento:
+          input(type="date" name="fechaValidez" id="fechaValidez" required value=datos ? datos.fechaValidez : fechaValidezDefault)
+        //- div
+        //-   label(for="fechaVencimiento") Fecha de Vencimiento (opcional):
+        //-   input(type="date" name="fechaVencimiento" id="fechaVencimiento" value=datos ? datos.fechaVencimiento : '')
+
+    // Detalle de conceptos - VERSIÓN TARJETAS
+    fieldset
+      legend Conceptos del Presupuesto
+
+      // Contenedor de tarjetas
+      #conceptosContainer(style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;")
+        // Tarjeta template
+        .concepto-card(style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: #f9f9f9; position: relative;")
+          button(type="button" onclick="eliminarConcepto(this)" style="position: absolute; top: 10px; right: 10px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold;") ✕
+
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Producto:
+              select(name="conceptos[productoId][]" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" class="producto-select")
+                option(value="") -- Seleccionar producto --
+                each producto in productos
+                  option(value=producto.id data-nombre=producto.nombre data-precio=producto.precio)
+                    | #{producto.nombre}
+            div
+              label(style="font-weight: bold; display: none; margin-bottom: 5px;") Código:
+              input(type="text" name="conceptos[codigo][]" style="display: none; width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" placeholder="Código")
+
+          div(style="margin-bottom: 15px;")
+            label(style="font-weight: bold; display: block; margin-bottom: 5px;") Descripción:
+            input(type="text" name="conceptos[descripcion][]" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" placeholder="Descripción del producto/servicio")
+
+          div(style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Cantidad:
+              input(type="number" step="any" name="conceptos[cantidad][]" value="1" class="calcular" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Precio Unitario:
+              input(type="number" step="any" name="conceptos[precioUnitario][]" value="0" class="calcular" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Alic. IVA:
+              select(name="conceptos[alicIva][]" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" class="calcular-iva")
+                option(value="21%") 21%
+                option(value="10.5%") 10.5%
+                option(value="0%") 0%
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Importe:
+              input(type="text" name="conceptos[importe][]" readonly class="importe" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef; font-weight: bold;")
+
+      button(type="button" onclick="agregarConcepto()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px;")
+        | + Agregar Producto
+
+      // Totales
+      div(style="margin-top: 30px; padding: 20px; background-color: #f2f2f2; border-radius: 8px;")
+        div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin-left: auto;")
+          div
+            label(style="font-weight: bold;") Otros Tributos:
+            input(type="number" step="any" name="otrosTributos" id="otrosTributos" value="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+          div
+            label(style="font-weight: bold;") Subtotal Neto:
+            input(type="text" id="subtotalNeto" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef;")
+          div
+            label(style="font-weight: bold;") IVA 21%:
+            input(type="text" id="iva21" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef;")
+          div
+            label(style="font-weight: bold;") IVA 10.5%:
+            input(type="text" id="iva105" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef;")
+          div(style="grid-column: span 2;")
+            label(style="font-weight: bold; font-size: 1.2rem;") TOTAL:
+            input(type="text" name="total" id="total" readonly style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef; font-size: 1.2rem; font-weight: bold; color: #007bff;")
+
+    // Condiciones
+    fieldset
+      legend Condiciones del Presupuesto
+      div(style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;")
+        div
+          label(for="condicionesPago") Condiciones de Pago:
+          input(type="text" name="condicionesPago" id="condicionesPago" value=datos ? datos.condicionesPago : 'Contado' style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+        div
+          label(for="tiempoEntrega") Tiempo de Entrega:
+          input(type="text" name="tiempoEntrega" id="tiempoEntrega" value=datos ? datos.tiempoEntrega : 'Consultar' style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+        div
+          label(for="garantia") Garantía:
+          input(type="text" name="garantia" id="garantia" value=datos ? datos.garantia : '6 meses' style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+
+    // Observaciones
+    fieldset
+      legend Observaciones
+      div
+        //- label Observaciones:
+        textarea(name="observaciones" rows="3" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")= datos ? datos.observaciones : '' 
+
+    div.form-actions(style="margin-top: 20px; text-align: center;")
+      button(type="submit" style="padding: 12px 40px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;") Generar Presupuesto
+      a(href="/presupuestos" style="display: inline-block; margin-left: 10px; padding: 12px 40px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;") Cancelar
+
+    block scripts
+    script.
+      function autocompletarProducto(selectElement) {
+      const card = selectElement.closest('.concepto-card');
+      const selectedOption = selectElement.options[selectElement.selectedIndex];
+
+      if (selectedOption && selectedOption.value) {
+        const productoNombre = selectedOption.getAttribute('data-nombre') || '';
+        const productoPrecio = selectedOption.getAttribute('data-precio') || 0;
+
+        const descripcionInput = card.querySelector('input[name="conceptos[descripcion][]"]');
+        const precioInput = card.querySelector('input[name="conceptos[precioUnitario][]"]');
+        const codigoInput = card.querySelector('input[name="conceptos[codigo][]"]');
+        const cantidadInput = card.querySelector('input[name="conceptos[cantidad][]"]');
+        const importeInput = card.querySelector('input[name="conceptos[importe][]"]');
+
+        if (descripcionInput) descripcionInput.value = productoNombre;
+        if (precioInput) precioInput.value = productoPrecio;
+        if (codigoInput) codigoInput.value = selectedOption.value;
+
+        const cantidad = parseFloat(cantidadInput ? cantidadInput.value : 0) || 0;
+        const precio = parseFloat(productoPrecio);
+        if (importeInput) importeInput.value = (cantidad * precio).toFixed(2);
+
+        recalcularTotales();
+      }
+      }
+
+      function agregarConcepto() {
+      const container = document.getElementById('conceptosContainer');
+      if (!container) return;
+
+      const template = container.querySelector('.concepto-card');
+      if (!template) return;
+
+      const newCard = template.cloneNode(true);
+
+      newCard.querySelectorAll('input').forEach(input => {
+        if (input.type !== 'button') {
+        input.value = '';
+        }
+      });
+
+      const selectElement = newCard.querySelector('select');
+      if (selectElement) selectElement.value = '';
+
+      const cantidadInput = newCard.querySelector('input[name="conceptos[cantidad][]"]');
+      if (cantidadInput) cantidadInput.value = '1';
+
+      const precioInput = newCard.querySelector('input[name="conceptos[precioUnitario][]"]');
+      if (precioInput) precioInput.value = '0';
+
+      const importeInput = newCard.querySelector('input[name="conceptos[importe][]"]');
+      if (importeInput) importeInput.value = '';
+
+      const ivaSelect = newCard.querySelector('select[name="conceptos[alicIva][]"]');
+      if (ivaSelect) ivaSelect.value = '21%';
+
+      inicializarEventListenersTarjeta(newCard);
+
+      container.appendChild(newCard);
+      recalcularTotales();
+      }
+
+      function eliminarConcepto(btn) {
+      const card = btn.closest('.concepto-card');
+      const container = document.getElementById('conceptosContainer');
+      if (!container) return;
+
+      if (container.querySelectorAll('.concepto-card').length > 1) {
+        card.remove();
+        recalcularTotales();
+      } else {
+        alert('Debe haber al menos un producto en el presupuesto');
+      }
+      }
+
+      function recalcularImporte(inputElement) {
+      const card = inputElement.closest('.concepto-card');
+      if (!card) return;
+
+      const cantidad = parseFloat(card.querySelector('input[name="conceptos[cantidad][]"]')?.value) || 0;
+      const precio = parseFloat(card.querySelector('input[name="conceptos[precioUnitario][]"]')?.value) || 0;
+      const importe = cantidad * precio;
+
+      const importeInput = card.querySelector('input[name="conceptos[importe][]"]');
+      if (importeInput) importeInput.value = importe.toFixed(2);
+
+      recalcularTotales();
+      }
+
+      function recalcularTotales() {
+      let subtotalNeto = 0;
+      let iva21Total = 0;
+      let iva105Total = 0;
+
+      document.querySelectorAll('.concepto-card').forEach(card => {
+        const cantidad = parseFloat(card.querySelector('input[name="conceptos[cantidad][]"]')?.value) || 0;
+        const precio = parseFloat(card.querySelector('input[name="conceptos[precioUnitario][]"]')?.value) || 0;
+        const alicIva = card.querySelector('select[name="conceptos[alicIva][]"]')?.value || '21%';
+        const importe = cantidad * precio;
+
+        subtotalNeto += importe;
+        if (alicIva === '21%') {
+        iva21Total += importe * 0.21;
+        } else if (alicIva === '10.5%') {
+        iva105Total += importe * 0.105;
+        }
+      });
+
+      const otrosTributos = parseFloat(document.getElementById('otrosTributos')?.value) || 0;
+      const total = subtotalNeto + iva21Total + iva105Total + otrosTributos;
+
+      document.getElementById('subtotalNeto').value = subtotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2});
+      document.getElementById('iva21').value = iva21Total.toLocaleString('es-AR', {minimumFractionDigits: 2});
+      document.getElementById('iva105').value = iva105Total.toLocaleString('es-AR', {minimumFractionDigits: 2});
+      document.getElementById('total').value = total.toLocaleString('es-AR', {minimumFractionDigits: 2});
+      }
+
+      function inicializarEventListenersTarjeta(card) {
+      const productoSelect = card.querySelector('.producto-select');
+      if (productoSelect) {
+        productoSelect.addEventListener('change', function() {
+        autocompletarProducto(this);
+        });
+      }
+
+      const calcularInputs = card.querySelectorAll('.calcular');
+      calcularInputs.forEach(input => {
+        input.addEventListener('change', function() {
+        recalcularImporte(this);
+        });
+      });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.concepto-card').forEach(card => {
+        inicializarEventListenersTarjeta(card);
+      });
+
+      const otrosTributos = document.getElementById('otrosTributos');
+      if (otrosTributos) {
+        otrosTributos.addEventListener('change', recalcularTotales);
+      }
+
+      recalcularTotales();
+      });

@@ -1,0 +1,136 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/dashboard') Volver
+    
+    h1 📊 Resumen Financiero
+    
+    if error
+        p.error= error
+    
+    //- Tarjetas de estadísticas principales
+    .dashboard-finanzas
+        .tarjeta-stat.stat-cobrar
+            .stat-icono 💰
+            .stat-contenido
+                h3 A Cobrar
+                p.stat-numero $ #{estadisticas.totalPorCobrar.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                p.stat-detalle #{estadisticas.facturasClientesPendientes} facturas pendientes
+            a.stat-link(href='/finanzas/cuentas-cobrar') Ver detalles →
+        
+        .tarjeta-stat.stat-pagar
+            .stat-icono 💸
+            .stat-contenido
+                h3 A Pagar
+                p.stat-numero $ #{estadisticas.totalPorPagar.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                p.stat-detalle #{estadisticas.facturasProveedoresPendientes} facturas pendientes
+            a.stat-link(href='/finanzas/cuentas-pagar') Ver detalles →
+        
+        .tarjeta-stat.stat-balance(class=estadisticas.balanceNeto >= 0 ? 'positivo' : 'negativo')
+            .stat-icono 📈
+            .stat-contenido
+                h3 Balance Neto
+                p.stat-numero $ #{estadisticas.balanceNeto.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                p.stat-detalle= estadisticas.balanceNeto >= 0 ? 'Superávit' : 'Déficit'
+        
+        .tarjeta-stat.stat-ordenes
+            .stat-icono 📋
+            .stat-contenido
+                h3 Órdenes de Pago
+                p.stat-numero #{estadisticas.ordenesPagoPendientes}
+                p.stat-detalle Pendientes de pago
+            a.stat-link(href='/ordenes-pago') Ver todas →
+        
+        .tarjeta-stat.stat-presupuestos
+            .stat-icono 📄
+            .stat-contenido
+                h3 Presupuestos
+                p.stat-numero #{estadisticas.presupuestosVigentes}
+                p.stat-detalle Vigentes
+            a.stat-link(href='/presupuestos') Ver todos →
+
+    //- Accesos rápidos organizados por categoría
+    .accesos-rapidos
+        h2 🔗 Accesos Rápidos
+        
+        .seccion-accesos
+            h3.seccion-titulo 👤 Clientes
+            .grid-accesos
+                a.boton-acceso(href='/finanzas/cobrar')
+                    span.icono 💰
+                    span.texto Cobro Múltiple
+                a.boton-acceso(href='/facturas-cliente')
+                    span.icono 🧾
+                    span.texto Facturas Clientes
+                a.boton-acceso(href='/notas-credito')
+                    span.icono ➖
+                    span.texto Notas de Crédito
+                a.boton-acceso(href='/notas-debito')
+                    span.icono ➕
+                    span.texto Notas de Débito
+                a.boton-acceso(href='/presupuestos')
+                    span.icono 📊
+                    span.texto Presupuestos
+        
+        .seccion-accesos
+            h3.seccion-titulo 🏭 Proveedores
+            .grid-accesos
+                a.boton-acceso(href='/ordenes-pago/nuevo')
+                    span.icono 💸
+                    span.texto Pago Múltiple
+                a.boton-acceso(href='/facturas-proveedor')
+                    span.icono 📑
+                    span.texto Facturas Proveedores
+                a.boton-acceso(href='/ordenes-pago')
+                    span.icono 💰
+                    span.texto Órdenes de Pago
+        
+        .seccion-accesos
+            h3.seccion-titulo 📊 Resúmenes
+            .grid-accesos
+                a.boton-acceso(href='/finanzas/cuentas-cobrar')
+                    span.icono 💵
+                    span.texto Cuentas por Cobrar
+                a.boton-acceso(href='/finanzas/cuentas-pagar')
+                    span.icono 💳
+                    span.texto Cuentas por Pagar
+
+    //- Últimos movimientos
+    .ultimos-movimientos
+        h2 🕐 Últimos Movimientos
+        
+        if ultimosMovimientos && ultimosMovimientos.length > 0
+            table
+                thead
+                    tr
+                        th Tipo
+                        th Número
+                        th Entidad
+                        th Fecha
+                        th Monto
+                        th Estado
+                        th Acciones
+                tbody
+                    each mov in ultimosMovimientos
+                        tr
+                            td
+                                if mov.tipo === 'Nota de Crédito'
+                                    span(style="color: #dc3545;") #{mov.tipo}
+                                else if mov.tipo === 'Nota de Débito'
+                                    span(style="color: #28a745;") #{mov.tipo}
+                                else
+                                    span= mov.tipo
+                            td= mov.numero
+                            td= mov.entidad
+                            td= new Date(mov.fecha).toLocaleDateString('es-AR')
+                            td.monto
+                                if mov.tipo === 'Nota de Crédito'
+                                    span(style="color: #dc3545;") -$ #{mov.monto.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                else
+                                    | $ #{mov.monto.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            td
+                                span.badge(class=`badge-${mov.estatus.toLowerCase()}`)= mov.estatus
+                            td
+                                a.btn-ver(href=mov.link) Ver
+        else
+            p.sin-datos No hay movimientos recientes registrados.

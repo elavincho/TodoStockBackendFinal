@@ -1,0 +1,34 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/proveedores') Volver
+    
+  h1 Listado de Proveedores
+
+  div.btn-container-right
+      a.btn-nuevo(href='/proveedores/nuevo') + Registrar Proveedor
+    
+  if proveedores.length > 0
+      table
+          thead
+              tr
+                  th Documento
+                  th Nombre / Razón Social
+                  th Email
+                  th Teléfono
+                  th Acciones
+          tbody
+              each prod in proveedores
+                  tr
+                      td #{prod.tipoDoc}: #{prod.nroDoc}
+                      td= prod.tipoDoc === 'DNI' ? prod.nombre : prod.razonSocial
+                      td= prod.email
+                      td= prod.telefono
+                      td
+                          div.acciones-container 
+                              a(href=`/proveedores/editar/${prod._id}`) Editar
+
+                              form.inline-form(action=`/proveedores/eliminar/${prod._id}` method="POST" onsubmit="return confirm('¿Está seguro que desea eliminar este proveedor?')")
+                                  button.btn-accion.btn-borrar(type="submit") Eliminar
+  else
+      p No hay proveedores registrados en el sistema.

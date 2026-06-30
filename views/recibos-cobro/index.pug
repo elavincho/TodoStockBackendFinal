@@ -1,0 +1,40 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/finanzas') Volver
+
+  h1 🧾 Recibos de Cobro
+
+  div.acciones-header
+    a.btn-nuevo(href="/recibos-cobro/nuevo") + Nuevo Recibo de Cobro
+
+  if recibos && recibos.length > 0
+    table
+      thead
+        tr
+          th N° Recibo
+          th Cliente
+          th Fecha Emisión
+          th Monto Cobrado
+          th Estatus
+          th Acciones
+      tbody
+        each recibo in recibos
+          - const clienteNombre = recibo.clienteId ? (recibo.clienteId.tipoDoc === 'DNI' ? recibo.clienteId.nombre : recibo.clienteId.razonSocial) : recibo.clienteInfo.nombre
+          tr(class=recibo.estatus === 'Anulado' ? 'estatus-anulado' : 'estatus-pagado')
+            td= recibo.numero
+            td= clienteNombre
+            td= recibo.fechaEmision.toLocaleDateString('es-AR')
+            td $ #{recibo.montoCobrado.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+            td
+              span(class=`badge badge-${recibo.estatus.toLowerCase()}`)= recibo.estatus
+            td
+              div.acciones-container
+                a(href=`/recibos-cobro/ver/${recibo.numero}`) Ver
+                if recibo.estatus !== 'Anulado'
+                  form(action=`/recibos-cobro/anular/${recibo.numero}` method="POST" style="display: inline;")
+                    button(type="submit" onclick="return confirm('¿Anular este recibo? Las facturas volverán a estado Pendiente.')") Anular
+                form(action=`/recibos-cobro/eliminar/${recibo.numero}` method="POST" style="display: inline;")
+                  button(type="submit" onclick="return confirm('¿Eliminar este recibo?')" style="background-color: #dc3545;") Eliminar
+  else
+    p No hay recibos de cobro registrados.

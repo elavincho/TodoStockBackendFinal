@@ -1,0 +1,174 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/finanzas/cuentas-cobrar') Volver
+
+  h1 💰 Cobrar Facturas de Cliente
+
+  if error
+    .error-msg= error
+
+  form(action="/finanzas/cobrar" method="POST" id="formCobroCliente")
+    //- Información del Cliente
+    fieldset
+      legend Datos del Cliente
+      div
+        label(for="clienteId") Cliente:
+        select(name="clienteId" id="clienteIdFinCobro" required)
+          option(value="") Seleccione un cliente
+          each cliente in clientes
+            option(value=cliente._id.toString() selected=(datos && datos.clienteId == cliente._id.toString()))
+              | #{cliente.tipoDoc === 'DNI' ? cliente.nombre : cliente.razonSocial} - #{cliente.nroDoc}
+
+      //- Botón para cargar facturas
+      button(type="button" id="cargarFacturasFinCobro" style="margin-top: 10px;") Cargar Facturas Pendientes
+
+    //- Listado de facturas pendientes
+    fieldset(id="facturasContainerFinCobro" style="display: none;")
+      legend Facturas Pendientes del Cliente
+      div(id="facturasListadoFinCobro")
+        p Seleccione un cliente y haga clic en "Cargar Facturas"
+
+      div(style="margin-top: 15px;")
+        label
+          input(type="checkbox" id="seleccionarTodasFinCobro")
+          |  Seleccionar todas
+
+      div(style="margin-top: 10px; font-weight: bold;")
+        span Total seleccionado: $&nbsp;
+        span(id="totalSeleccionadoFinCobro") 0.00
+
+    //- Forma de Cobro
+    fieldset
+      legend Forma de Cobro
+      div
+        label(for="formaPago") Forma de Cobro:
+        select(name="formaPago" id="formaPagoFinCobro" required)
+          option(value="Transferencia") Transferencia
+          option(value="Efectivo") Efectivo
+          option(value="Cheque") Cheque
+          option(value="Tarjeta") Tarjeta
+
+      div
+        label(for="referencia") Referencia:
+        input(type="text" name="referencia" id="referenciaFinCobro" value=datos ? datos.referencia : '')
+
+      div
+        label(for="bancoCuenta") Banco/Cuenta:
+        input(type="text" name="bancoCuenta" id="bancoCuentaFinCobro" value=datos ? datos.bancoCuenta : '')
+
+      div
+        label(for="fechaCobro") Fecha de Cobro:
+        input(type="date" name="fechaCobro" id="fechaFinCobro" required value=datos ? datos.fechaCobro : new Date().toISOString().split('T')[0])
+
+      div
+        label(for="montoCobrado") Monto Cobrado:
+        input(type="number" step="0.01" name="montoCobrado" id="montoFinCobrado" readonly required style="background-color: #f5f5f5;")
+
+    //- Datos adicionales
+    fieldset
+      legend Datos Adicionales
+      div
+        label(for="recibidoPor") Recibido Por:
+        input(type="text" name="recibidoPor" id="recibidoPorFin" value=datos ? datos.recibidoPor : '')
+
+      div
+        label(for="observaciones") Observaciones:
+        textarea(name="observaciones" id="observacionesFinCobro" rows="3")= datos ? datos.observaciones : ''
+
+    div.form-actions
+      button(type="submit").btn-guardar Emitir Recibo de Cobro
+      a(href="/finanzas/cuentas-cobrar").btn-cancelar Cancelar
+
+  script.
+    (function() {
+      const clienteSelect = document.getElementById('clienteIdFinCobro');
+      const cargarFacturasBtn = document.getElementById('cargarFacturasFinCobro');
+      const facturasContainer = document.getElementById('facturasContainerFinCobro');
+      const facturasListado = document.getElementById('facturasListadoFinCobro');
+      const seleccionarTodasCb = document.getElementById('seleccionarTodasFinCobro');
+      const totalSeleccionadoSpan = document.getElementById('totalSeleccionadoFinCobro');
+      const montoCobradoInput = document.getElementById('montoFinCobrado');
+
+      cargarFacturasBtn.addEventListener('click', async () => {
+        const clienteId = clienteSelect.value;
+        if (!clienteId) {
+          alert('Por favor, seleccione un cliente primero');
+          return;
+        }
+
+        try {
+          const response = await fetch(`/cobranzas/facturas-pendientes/${clienteId}`);
+          const data = await response.json();
+
+          if (data.success && data.facturas.length > 0) {
+            mostrarFacturas(data.facturas);
+            facturasContainer.style.display = 'block';
+          } else {
+            facturasListado.innerHTML = '<p style="color: #999;">No hay facturas pendientes para este cliente</p>';
+            facturasContainer.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al cargar facturas');
+        }
+      });
+
+      function mostrarFacturas(facturas) {
+        if (!facturas || facturas.length === 0) {
+          facturasListado.innerHTML = '<p>No hay facturas pendientes</p>';
+          return;
+        }
+
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background-color: #f2f2f2;">';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Sel.</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">N° Factura</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Fecha</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Total</th>';
+        html += '</tr></thead><tbody>';
+
+        facturas.forEach(factura => {
+          const fecha = new Date(factura.fechaEmision).toLocaleDateString('es-AR');
+          html += '<tr>';
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><input type="checkbox" name="facturasSeleccionadas" value="${factura.id}" data-total="${factura.total}" class="factura-cb-fincobro"></td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd;">${factura.numero}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd;">${fecha}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$ ${factura.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>`;
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        facturasListado.innerHTML = html;
+
+        document.querySelectorAll('.factura-cb-fincobro').forEach(cb => {
+          cb.addEventListener('change', recalcularTotal);
+        });
+
+        recalcularTotal();
+      }
+
+      function recalcularTotal() {
+        let total = 0;
+        document.querySelectorAll('.factura-cb-fincobro:checked').forEach(cb => {
+          total += parseFloat(cb.dataset.total) || 0;
+        });
+        totalSeleccionadoSpan.textContent = total.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        montoCobradoInput.value = total.toFixed(2);
+      }
+
+      seleccionarTodasCb.addEventListener('change', () => {
+        document.querySelectorAll('.factura-cb-fincobro').forEach(cb => {
+          cb.checked = seleccionarTodasCb.checked;
+        });
+        recalcularTotal();
+      });
+
+      clienteSelect.addEventListener('change', () => {
+        facturasContainer.style.display = 'none';
+        facturasListado.innerHTML = '<p>Seleccione un cliente y haga clic en "Cargar Facturas"</p>';
+        seleccionarTodasCb.checked = false;
+        totalSeleccionadoSpan.textContent = '0.00';
+        montoCobradoInput.value = '';
+      });
+    })();

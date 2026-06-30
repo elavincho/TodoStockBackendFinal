@@ -1,0 +1,25 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/dashboard') Volver
+
+  h1 Proveedores
+
+  div.contenedor
+      a(href="/proveedores/nuevo")
+        h2 Agregar Proveedores
+
+      a(href="/proveedores/listar")
+        h2 Listar Proveedores
+
+      a(href="/facturas-proveedor/nuevo")
+        h2 Facturación Proveedores
+
+      a(href="/facturas-proveedor")
+        h2 Listar Facturas Proveedores
+
+      a(href="/ordenes-pago/nuevo")
+        h2 Ordenes de Pago
+
+      a(href="/ordenes-pago")
+        h2 Listar Ordenes de Pago

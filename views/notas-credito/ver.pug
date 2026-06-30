@@ -1,0 +1,194 @@
+extends ../layout
+
+block contenido
+  style.
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; padding: 20px; }
+      .nota-container { box-shadow: none; margin: 0; }
+    }
+    .nota-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .empresa-nombre { font-size: 1.3rem; font-weight: bold; }
+    .nota-title { font-size: 1.5rem; font-weight: bold; text-align: center; margin: 15px 0; color: #28a745; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .info-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; }
+    .info-cliente { background-color: #f9f9f9; }
+    .membrete { background-color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+    th { background-color: #f2f2f2; text-align: center; }
+    .text-left { text-align: left; }
+    .totales { margin-top: 20px; text-align: right; border-top: 1px solid #ccc; padding-top: 10px; }
+    .estatus { font-weight: bold; padding: 5px; text-align: center; border-radius: 4px; display: inline-block; }
+    .estatus-Pendiente { background-color: #ffc107; color: #333; }
+    .estatus-Aplicada { background-color: #28a745; color: white; }
+    .estatus-Anulada { background-color: #dc3545; color: white; }
+    .footer { margin-top: 30px; text-align: center; font-size: 0.7rem; border-top: 1px solid #ccc; padding-top: 10px; }
+
+  .nota-container
+
+    .info-box.membrete
+      .info-row
+        div
+          h2 #{nota.empresaInfo.razonSocial}
+        div
+          h1 A
+        div
+          h1 NOTA DE CRÉDITO
+
+      .info-row
+        div
+          strong Razón Social: 
+          | #{nota.empresaInfo.razonSocial}
+        div
+          strong Nota N°: 
+          | #{nota.numero || 'N/A'}
+
+      .info-row  
+        div
+          strong Dirección: 
+          | #{nota.empresaInfo.direccion || 'N/A'}
+        div
+          strong Fecha Emisión: 
+          | #{nota.fechaEmision.toLocaleDateString('es-AR') || 'N/A'}
+      .info-row
+        div
+          strong Argentina
+        div
+          strong CUIT: 
+          | #{nota.empresaInfo.cuit}
+      .info-row
+        div
+          strong Teléfono: 
+          | #{nota.empresaInfo.telefono || 'N/A'}
+        div
+          strong Ingresos Brutos: 
+          | #{nota.empresaInfo.ingBrutos || 'N/A'}
+      .info-row
+        div
+          strong Responsable Inscripto
+        div
+          strong Inicio Actividades: 
+          | #{nota.empresaInfo.inicioActividades ? nota.empresaInfo.inicioActividades.toLocaleDateString('es-AR') : 'N/A'}
+
+    .info-box.info-cliente
+      .info-row
+        div
+          strong Razón Social: 
+          | #{nota.clienteInfo.razonSocial}
+        div
+          strong CUIT: 
+          | #{nota.clienteInfo.cuit}
+      .info-row
+        div
+          strong Domicilio: 
+          | #{nota.clienteInfo.direccion || 'N/A'}
+        div
+          strong Localidad: 
+          | #{nota.clienteInfo.localidad || 'N/A'}
+      .info-row
+        div
+          strong Teléfono: 
+          | #{nota.clienteInfo.telefono || 'N/A'}
+        div
+          strong Provincia: 
+          | #{nota.clienteInfo.provincia || 'Buenos Aires'}
+      .info-row
+        div
+          strong Cond. IVA: Responsable Inscripto
+        div
+          strong Cond. Venta: 
+          | Contado
+
+    // Tabla de conceptos
+    h3(style="color: #28a745; margin-top: 20px;") Conceptos de la Nota de Crédito
+    table
+      thead
+        tr
+          //- th Código
+          th Descripción
+          th Cantidad
+          th P. Unitario
+          th Alic. IVA
+          th Importe
+      tbody
+        each concepto in nota.conceptos
+          tr
+            //- td.text-left= concepto.codigo || '-'
+            td.text-left= concepto.descripcion
+            td= concepto.cantidad
+            td= concepto.precioUnitario.toLocaleString('es-AR', {minimumFractionDigits: 2})
+            td= concepto.alicIva
+            td= concepto.importe.toLocaleString('es-AR', {minimumFractionDigits: 2})
+
+    // Totales
+    .totales
+      div
+        strong Importe Neto Gravado: 
+        | $ #{nota.subtotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong IVA 21%: 
+        | $ #{nota.iva21.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong IVA 10,5%: 
+        | $ #{nota.iva105.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong Importe Otros Tributos: 
+        | $ #{nota.otrosTributos.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      hr
+      div(style="font-size: 1.2rem; font-weight: bold; color: #28a745;")
+        strong Total: 
+        | $ #{nota.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    // CAE
+    if nota.cae
+      .info-row(style="margin-top: 20px;")
+        div
+          strong CAE Nº: 
+          | #{nota.cae}
+        div
+          strong Fecha de Vto. de CAE: 
+          | #{nota.fechaVtoCAE ? nota.fechaVtoCAE.toLocaleDateString('es-AR') : 'N/A'}
+
+    // Factura Origen
+    if nota.facturaOrigenNumero
+      .info-row(style="margin-top: 20px;")
+        div
+          strong Factura Origen: 
+          | #{nota.facturaOrigenNumero}
+
+    // Estatus
+    .info-row(style="margin-top: 20px;")
+      div
+        strong Estatus: 
+        span(class=`estatus estatus-${nota.estatus}`)= nota.estatus
+
+    // Observaciones
+    if nota.observaciones
+      .observaciones(style="margin-top: 20px;")
+        strong Observaciones:
+        p= nota.observaciones
+
+    // Footer ARCA
+    .footer
+      div ARCA
+      div Comprobante Autorizado
+      div Esta Administración Federal no se responsabiliza por los datos ingresados en el detalle de la operación
+
+  // Botones de acción
+  .no-print(style="text-align: center; margin-top: 20px;")
+    button(onclick="window.print()" style="margin-right: 10px; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") 🖨️ Imprimir
+    a(href="/notas-credito" style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;") Volver al listado

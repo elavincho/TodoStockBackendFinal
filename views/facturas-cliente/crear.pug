@@ -1,0 +1,132 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/facturas-cliente') Volver
+  
+  h1= titulo
+
+  if error
+    .error-msg= error
+
+  .info-message(style="background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 12px; margin-bottom: 20px; border-radius: 4px;")
+    p(style="margin: 0;")
+      strong 💡 Información: 
+      | Si el producto no existe en el inventario, se mostrará un error. Los productos deben estar registrados previamente.
+
+  form(action="/facturas-cliente/nuevo" method="POST" id="formFactura")
+    // Información de la Factura
+    fieldset
+      legend Datos de la Factura
+      div(style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;")
+        div
+          label(for="fechaEmision") Fecha de Emisión:
+          input(type="date" name="fechaEmision" id="fechaEmision" required value=datos ? datos.fechaEmision : new Date().toISOString().split('T')[0])
+        div
+          label(for="clienteId") Cliente:
+          select(name="clienteId" id="clienteId" required)
+            option(value="") Seleccione un cliente
+            each cliente in clientes
+              option(value=cliente.id selected=(datos && datos.clienteId == cliente.id))
+                | #{cliente.tipoDoc === 'DNI' ? cliente.nombre : cliente.razonSocial} - #{cliente.nroDoc}
+        div
+          label(for="puntoVenta") Punto de Venta:
+          input(type="number" name="puntoVenta" id="puntoVenta" value=datos ? datos.puntoVenta : '1')
+        div
+          label(for="numero") Número de Factura:
+          input(type="number" name="numero" id="numero" required value=datos ? datos.numero : '')
+        div
+          label(for="cae") CAE (Código Autorización):
+          //- CAE con valor por defecto "123456789" pero editable
+          input(type="text" name="cae" id="cae" value=datos && datos.cae ? datos.cae : '123456789')
+        div
+          label(for="fechaVtoCAE") Fecha Vto. CAE:
+          //- Fecha Vto. CAE con valor por defecto (1 año a partir de hoy)
+          - const hoy = new Date();
+          - const unAnioDespues = new Date(hoy);
+          - unAnioDespues.setFullYear(unAnioDespues.getFullYear() + 1);
+          - const fechaVtoCAEDefault = unAnioDespues.toISOString().split('T')[0];
+          input(type="date" name="fechaVtoCAE" id="fechaVtoCAE" value=datos && datos.fechaVtoCAE ? datos.fechaVtoCAE : fechaVtoCAEDefault)
+        div
+          label(for="fechaVencimiento") Fecha de Vencimiento Factura:
+          //- Fecha de vencimiento de factura sin valor por defecto
+          input(type="date" name="fechaVencimiento" id="fechaVencimiento" value=datos ? datos.fechaVencimiento : '')
+
+    // Detalle de productos - VERSIÓN TARJETAS
+    fieldset
+      legend Detalle de la Factura
+      
+      // Contenedor de tarjetas
+      #productosContainer(style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;")
+        // Tarjeta template (se clona para cada producto)
+        .producto-card(style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: #f9f9f9; position: relative;")
+          button(type="button" onclick="eliminarProducto(this)" style="display: flex; position: absolute; top: 10px; right: 10px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold; align-items: center; justify-content: center;") ✕
+          
+          div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Producto:
+              select(name="detalles[productoId][]" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" class="producto-select")
+                option(value="") -- Seleccionar producto --
+                each producto in productos
+                  option(value=producto.id data-nombre=producto.nombre data-precio=producto.precio)
+                    | #{producto.nombre}
+            div
+              label(style="font-weight: bold; display: none; margin-bottom: 5px;") Código:
+              input(type="text" name="detalles[codigo][]" style="display: none; width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" placeholder="Código")
+          
+          div(style="margin-bottom: 15px;")
+            label(style="font-weight: bold; display: block; margin-bottom: 5px;") Descripción:
+            input(type="text" name="detalles[descripcion][]" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" placeholder="Descripción del producto")
+          
+          div(style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Cantidad:
+              input(type="number" step="any" name="detalles[cantidad][]" value="1" class="calcular" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Precio Unitario:
+              input(type="number" step="any" name="detalles[precioUnitario][]" value="0" class="calcular" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Alic. IVA:
+              select(name="detalles[alicIva][]" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" class="calcular-iva")
+                option(value="21%") 21%
+                option(value="10.5%") 10.5%
+                option(value="0%") 0%
+            div
+              label(style="font-weight: bold; display: block; margin-bottom: 5px;") Importe:
+              input(type="text" name="detalles[importe][]" readonly class="importe" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef; font-weight: bold;")
+      
+      // Botón para agregar producto
+      button(type="button" onclick="agregarProducto()" style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px;")
+        | + Agregar Producto
+
+      // Totales
+      div(style="margin-top: 30px; padding: 20px; background-color: #f2f2f2; border-radius: 8px;")
+        div(style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin-left: auto;")
+          div
+            label(style="font-weight: bold;") Otros Tributos:
+            input(type="number" step="any" name="otrosTributos" id="otrosTributos" value="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")
+          div
+            label(style="font-weight: bold;") Subtotal Neto:
+            input(type="text" id="subtotalNeto" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef;")
+          div
+            label(style="font-weight: bold;") IVA 21%:
+            input(type="text" id="iva21" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef;")
+          div
+            label(style="font-weight: bold;") IVA 10.5%:
+            input(type="text" id="iva105" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef;")
+          div(style="grid-column: span 2;")
+            label(style="font-weight: bold; font-size: 1.2rem;") TOTAL:
+            input(type="text" name="total" id="total" readonly style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; background-color: #e9ecef; font-size: 1.2rem; font-weight: bold; color: #28a745;")
+
+    // Observaciones
+    fieldset
+      legend Observaciones
+      div
+        //- label Observaciones:
+        textarea(name="observaciones" rows="3" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;")= datos ? datos.observaciones : ''
+
+    div.form-actions(style="margin-top: 20px; text-align: center;")
+      button(type="submit" style="padding: 12px 40px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;") Generar Factura
+      a(href="/facturas-cliente" style="display: inline-block; margin-left: 10px; padding: 12px 40px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;") Cancelar
+
+  block scripts
+    script(src="/js/facturaCliente.js")

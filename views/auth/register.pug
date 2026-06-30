@@ -1,0 +1,62 @@
+extends ../layout
+
+block contenido
+  .register-container.body-register
+    .register-header
+      h1 Crear Cuenta
+      p.sub-titulo Regístrate para comenzar
+    
+    .register-body
+      if error
+        .error-message= error
+      
+      form(action="/register" method="POST")
+        .form-group
+          label(for="nombreCompleto") Nombre Completo
+          input(type="text" 
+                id="nombreCompleto" 
+                name="nombreCompleto" 
+                required
+                placeholder="Ingrese su nombre completo"
+                value=datos && datos.nombreCompleto ? datos.nombreCompleto : '')
+        
+        .form-group
+          label(for="username") Usuario
+          input(type="text" 
+                id="username" 
+                name="username" 
+                required
+                placeholder="Elija un nombre de usuario"
+                value=datos && datos.username ? datos.username : '')
+        
+        .form-group
+          label(for="email") Email
+          input(type="email" 
+                id="email" 
+                name="email" 
+                required
+                placeholder="Ingrese su email"
+                value=datos && datos.email ? datos.email : '')
+        
+        .form-group
+          label(for="password") Contraseña
+          input(type="password" 
+                id="password" 
+                name="password" 
+                required
+                placeholder="Ingrese su contraseña")
+          .password-hint Mínimo 6 caracteres
+        
+        .form-group
+          label(for="confirmPassword") Confirmar Contraseña
+          input(type="password" 
+                id="confirmPassword" 
+                name="confirmPassword" 
+                required
+                placeholder="Confirme su contraseña")
+        
+        button(type="submit" class="btn-register") Registrarse
+      
+      .login-link
+        | ¿Ya tienes una cuenta? 
+        a(href="/login") Inicia sesión aquí

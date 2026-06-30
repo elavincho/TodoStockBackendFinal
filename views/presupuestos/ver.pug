@@ -1,0 +1,198 @@
+extends ../layout
+
+block contenido
+  style.
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; padding: 20px; }
+      .presupuesto-container { box-shadow: none; margin: 0; }
+    }
+    .presupuesto-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .empresa-nombre { font-size: 1.3rem; font-weight: bold; }
+    .presupuesto-title { font-size: 1.5rem; font-weight: bold; text-align: center; margin: 15px 0; color: #007bff; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .info-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; }
+    .info-cliente { background-color: #f9f9f9; }
+    .membrete { background-color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+    th { background-color: #f2f2f2; text-align: center; }
+    .text-left { text-align: left; }
+    .totales { margin-top: 20px; text-align: right; border-top: 1px solid #ccc; padding-top: 10px; }
+    .estatus { font-weight: bold; padding: 5px; text-align: center; border-radius: 4px; display: inline-block; }
+    .estatus-Pendiente { background-color: #ffc107; color: #333; }
+    .estatus-Aprobado { background-color: #28a745; color: white; }
+    .estatus-Rechazado { background-color: #dc3545; color: white; }
+    .estatus-Vencido { background-color: #6c757d; color: white; }
+    .estatus-Convertido { background-color: #17a2b8; color: white; }
+    .footer { margin-top: 30px; text-align: center; font-size: 0.7rem; border-top: 1px solid #ccc; padding-top: 10px; }
+    .condiciones-box { background-color: #e7f3ff; padding: 10px; border-radius: 5px; margin-top: 15px; }
+
+  .presupuesto-container
+
+    .info-box.membrete
+      .info-row
+        div
+          h2 #{presupuesto.empresaInfo.razonSocial}
+        div
+          h1 
+        div
+          h1 PRESUPUESTO
+
+      .info-row
+        div
+          strong Razón Social: 
+          | #{presupuesto.empresaInfo.razonSocial}
+        div
+          strong Presupuesto N°: 
+          | #{presupuesto.numero || 'N/A'}
+
+      .info-row  
+        div
+          strong Dirección: 
+          | #{presupuesto.empresaInfo.direccion || 'N/A'}
+        div
+          strong Fecha Emisión: 
+          | #{presupuesto.fechaEmision.toLocaleDateString('es-AR') || 'N/A'}
+      .info-row
+        div
+          strong Argentina
+        div
+          strong CUIT: 
+          | #{presupuesto.empresaInfo.cuit}
+      .info-row
+        div
+          strong Teléfono: 
+          | #{presupuesto.empresaInfo.telefono || 'N/A'}
+        div
+          strong Email: 
+          | #{presupuesto.empresaInfo.email || 'N/A'}
+      .info-row
+        div
+          strong Responsable Inscripto
+        div
+          strong Fecha Validez: 
+          | #{presupuesto.fechaValidez.toLocaleDateString('es-AR') || 'N/A'}
+
+    .info-box.info-cliente
+      .info-row
+        div
+          strong Razón Social: 
+          | #{presupuesto.clienteInfo.razonSocial}
+        div
+          strong CUIT: 
+          | #{presupuesto.clienteInfo.cuit}
+      .info-row
+        div
+          strong Domicilio: 
+          | #{presupuesto.clienteInfo.direccion || 'N/A'}
+        div
+          strong Localidad: 
+          | #{presupuesto.clienteInfo.localidad || 'N/A'}
+      .info-row
+        div
+          strong Teléfono: 
+          | #{presupuesto.clienteInfo.telefono || 'N/A'}
+        div
+          strong Email: 
+          | #{presupuesto.clienteInfo.email || 'N/A'}
+
+    // Tabla de conceptos
+    h3(style="color: #007bff;") Productos/Servicios Presupuestados
+    table
+      thead
+        tr
+          //- th Código
+          th Descripción
+          th Cantidad
+          th P. Unitario
+          th Alic. IVA
+          th Importe
+      tbody
+        each concepto in presupuesto.conceptos
+          tr
+            //- td.text-left= concepto.codigo || '-'
+            td.text-left= concepto.descripcion
+            td= concepto.cantidad
+            td= concepto.precioUnitario.toLocaleString('es-AR', {minimumFractionDigits: 2})
+            td= concepto.alicIva
+            td= concepto.importe.toLocaleString('es-AR', {minimumFractionDigits: 2})
+
+    // Totales
+    .totales
+      div
+        strong Importe Neto Gravado: 
+        | $ #{presupuesto.subtotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong IVA 21%: 
+        | $ #{presupuesto.iva21.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong IVA 10,5%: 
+        | $ #{presupuesto.iva105.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      div
+        strong Importe Otros Tributos: 
+        | $ #{presupuesto.otrosTributos.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+      hr
+      div(style="font-size: 1.2rem; font-weight: bold; color: #007bff;")
+        strong Total: 
+        | $ #{presupuesto.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+
+    // Condiciones
+    .condiciones-box
+      h4(style="margin-top: 0;") Condiciones del Presupuesto
+      .info-row
+        div
+          strong Condiciones de Pago:
+          |  #{presupuesto.condicionesPago}
+        div
+          strong Tiempo de Entrega:
+          |  #{presupuesto.tiempoEntrega}
+      .info-row
+        div
+          strong Garantía:
+          |  #{presupuesto.garantia}
+        div
+          strong Vencimiento Presupuesto:
+          |  #{presupuesto.fechaValidez.toLocaleDateString('es-AR')}
+
+    // Estatus
+    .info-row(style="margin-top: 20px;")
+      div
+        strong Estatus: 
+        span(class=`estatus estatus-${presupuesto.estatus}`)= presupuesto.estatus
+
+    // Observaciones
+    if presupuesto.observaciones
+      .observaciones(style="margin-top: 20px;")
+        strong Observaciones:
+        p= presupuesto.observaciones
+
+    // Factura generada
+    if presupuesto.facturaGeneradaNumero
+      .info-row(style="margin-top: 20px;")
+        div
+          strong Factura Generada: 
+          | #{presupuesto.facturaGeneradaNumero}
+
+    .footer
+      div Este presupuesto tiene validez hasta #{presupuesto.fechaValidez.toLocaleDateString('es-AR')}
+      div Los precios están expresados en pesos argentinos (+ IVA según corresponda)
+      div Para confirmar su presupuesto, contactarse al #{presupuesto.empresaInfo.telefono}
+
+  // Botones de acción
+  .no-print(style="text-align: center; margin-top: 20px;")
+    button(onclick="window.print()" style="margin-right: 10px; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") 🖨️ Imprimir
+    a(href="/presupuestos" style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;") Volver al listado

@@ -1,0 +1,31 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/dashboard') Volver
+
+    h1 Clientes
+    
+    div.contenedor
+        a(href="/clientes/nuevo")
+            h2 Agregar Clientes
+        
+        a(href="/clientes/listar")
+            h2 Listar Clientes
+       
+        a(href="/facturas-cliente/nuevo")
+            h2 Facturación Clientes
+        
+        a(href="/facturas-cliente")
+            h2 Listar Facturas Clientes
+        
+        a(href="/notas-debito")
+            h2 Nota de Débito
+        
+        a(href="/notas-credito")
+            h2 Nota de Crédito
+        
+        a(href="/presupuestos")
+            h2 Presupuesto
+
+        a(href="/recibos-cobro")
+            h2 Cobranzas

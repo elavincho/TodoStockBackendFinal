@@ -1,0 +1,72 @@
+extends ../layout
+
+block contenido
+    a.btn-volver(href='/proveedores/listar') Volver
+
+    h1 Registrar Nuevo Proveedor
+
+    if error
+        span.error-msg= error
+
+    form(action="/proveedores/nuevo" method="POST")
+        div
+            label(for="tipoDoc") Tipo de Documento:
+            select(id="tipoDoc" name="tipoDoc")
+                option(value="DNI" selected=datos && datos.tipoDoc === "DNI") DNI
+                option(value="CUIT" selected=datos && datos.tipoDoc === "CUIT") CUIT
+
+        div#campo-nombre.campo-oculto
+            label(for="nombre") Nombre:
+            input(type="text" id="nombre" name="nombre" value=datos ? datos.nombre : '' placeholder="Ej: Juan Pérez")
+
+        div#campo-razonSocial.campo-oculto
+            label(for="razonSocial") Razón Social:
+            input(type="text" id="razonSocial" name="razonSocial" value=datos ? datos.razonSocial : '' placeholder="Ej: Limpieza Total S.R.L.")
+
+        div
+            label(for="nroDoc") Número de Documento:
+            input(type="text" id="nroDoc" name="nroDoc" required value=datos ? datos.nroDoc : '' placeholder="Ej: 32456789")
+
+        div
+            label(for="email") Email:
+            input(type="email" id="email" name="email" value=datos ? datos.email : '' placeholder="Ej: contacto@empresa.com")
+
+        div
+            label(for="telefono") Teléfono:
+            input(type="text" id="telefono" name="telefono" value=datos ? datos.telefono : '' placeholder="Ej: 351-1234567")
+
+        div
+            label(for="direccion") Dirección:
+            input(type="text" id="direccion" name="direccion" value=datos ? datos.direccion : '' placeholder="Ej: Av. Colón 123, Córdoba")
+
+        //- div
+        //-     label(for="saldoCuentaCorriente") Saldo de Cuenta Corriente Inicial ($):
+        //-     input(type="number" id="saldoCuentaCorriente" name="saldoCuentaCorriente" step="0.01" value=datos ? datos.saldoCuentaCorriente : '0')
+
+        div.form-actions
+            button(type="submit").btn-guardar Registrar Proveedor
+            a(href="/proveedores/listar").btn-cancelar Cancelar
+
+    script.
+        const select = document.getElementById('tipoDoc');
+        const campoNombre = document.getElementById('campo-nombre');
+        const campoRazon = document.getElementById('campo-razonSocial');
+        const inputNombre = document.getElementById('nombre');
+        const inputRazon = document.getElementById('razonSocial');
+
+        function actualizarCampos() {
+            if (select.value === 'CUIT') {
+                campoNombre.classList.add('campo-oculto');
+                campoRazon.classList.remove('campo-oculto');
+                inputNombre.removeAttribute('required');
+                inputRazon.setAttribute('required', 'true');
+            } else {
+                campoNombre.classList.remove('campo-oculto');
+                campoRazon.classList.add('campo-oculto');
+                inputRazon.removeAttribute('required');
+                inputNombre.setAttribute('required', 'true');
+            }
+        }
+
+        select.addEventListener('change', actualizarCampos);
+        actualizarCampos();

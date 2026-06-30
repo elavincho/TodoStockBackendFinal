@@ -1,0 +1,225 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/finanzas/cuentas-cobrar') Volver
+
+  h1 💰 Cobro Múltiple - Cliente
+
+  p.descripcion Seleccione un cliente para ver sus facturas, notas de crédito y débito pendientes. El sistema calcula el total neto (Facturas - NC + ND).
+
+  if error
+    .error-msg= error
+
+  form(action="/finanzas/cobrar" method="POST" id="formCobroMultiple")
+    //- Selección de Cliente
+    fieldset
+      legend Datos del Cliente
+      div
+        label(for="clienteId") Cliente:
+        select(name="clienteId" id="clienteIdMulti" required)
+          option(value="") Seleccione un cliente
+          each cliente in clientes
+            option(value=cliente._id.toString() selected=(preselectedClienteId && preselectedClienteId == cliente._id.toString()) || (datos && datos.clienteId == cliente._id.toString()))
+              | #{cliente.tipoDoc === 'DNI' ? cliente.nombre : cliente.razonSocial} - #{cliente.nroDoc}
+
+      button(type="button" id="cargarDocumentos" style="margin-top: 10px;") 📄 Cargar Documentos Pendientes
+
+    //- Listado de documentos
+    fieldset(id="docsContainer" style="display: none;")
+      legend Documentos Pendientes del Cliente
+
+      div(id="docsListado")
+        p Seleccione un cliente y haga clic en "Cargar Documentos"
+
+      div(style="margin-top: 15px;")
+        label
+          input(type="checkbox" id="seleccionarTodos")
+          |  Seleccionar todos
+
+      //- Resumen de totales
+      div(style="margin-top: 15px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;")
+        div(style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;")
+          div
+            span(style="color: #333;") 🧾 Facturas:&nbsp;
+            span(id="totalFacturas" style="font-weight: bold;") $0.00
+          div
+            span(style="color: #dc3545;") ➖ Notas Crédito:&nbsp;
+            span(id="totalNC" style="font-weight: bold; color: #dc3545;") -$0.00
+          div
+            span(style="color: #28a745;") ➕ Notas Débito:&nbsp;
+            span(id="totalND" style="font-weight: bold; color: #28a745;") +$0.00
+        hr(style="margin: 10px 0;")
+        div(style="text-align: right; font-size: 1.2rem;")
+          strong Total Neto a Cobrar: $&nbsp;
+          span(id="totalNeto" style="font-weight: bold; font-size: 1.3rem; color: #007bff;") 0.00
+
+    //- Forma de Cobro
+    fieldset
+      legend Forma de Cobro
+      div
+        label(for="formaPago") Forma de Cobro:
+        select(name="formaPago" id="formaPago" required)
+          option(value="Transferencia") Transferencia
+          option(value="Efectivo") Efectivo
+          option(value="Cheque") Cheque
+          option(value="Tarjeta") Tarjeta
+
+      div
+        label(for="referencia") Referencia:
+        input(type="text" name="referencia" value=datos ? datos.referencia : '')
+
+      div
+        label(for="bancoCuenta") Banco/Cuenta:
+        input(type="text" name="bancoCuenta" value=datos ? datos.bancoCuenta : '')
+
+      div
+        label(for="fechaCobro") Fecha de Cobro:
+        input(type="date" name="fechaCobro" required value=datos ? datos.fechaCobro : new Date().toISOString().split('T')[0])
+
+      div
+        label(for="montoCobrado") Monto a Cobrar:
+        input(type="number" step="0.01" name="montoCobrado" id="montoCobrado" readonly required style="background-color: #f5f5f5; font-weight: bold; font-size: 1.1rem;")
+
+    //- Datos adicionales
+    fieldset
+      legend Datos Adicionales
+      div
+        label(for="recibidoPor") Recibido Por:
+        input(type="text" name="recibidoPor" value=datos ? datos.recibidoPor : '')
+
+      div
+        label(for="observaciones") Observaciones:
+        textarea(name="observaciones" rows="3")= datos ? datos.observaciones : ''
+
+    div.form-actions
+      button(type="submit" onclick="return confirm('¿Confirmar cobro?\\n\\nEsta acción marcará los documentos seleccionados como cobrados.')").btn-guardar 💰 Emitir Recibo de Cobro
+      a(href="/finanzas/cuentas-cobrar").btn-cancelar Cancelar
+
+  script.
+    (function() {
+      const clienteSelect = document.getElementById('clienteIdMulti');
+      const cargarBtn = document.getElementById('cargarDocumentos');
+      const docsContainer = document.getElementById('docsContainer');
+      const docsListado = document.getElementById('docsListado');
+      const seleccionarTodosCb = document.getElementById('seleccionarTodos');
+      const montoCobradoInput = document.getElementById('montoCobrado');
+      const totalFacturasSpan = document.getElementById('totalFacturas');
+      const totalNCSpan = document.getElementById('totalNC');
+      const totalNDSpan = document.getElementById('totalND');
+      const totalNetoSpan = document.getElementById('totalNeto');
+
+      cargarBtn.addEventListener('click', async () => {
+        const clienteId = clienteSelect.value;
+        if (!clienteId) {
+          alert('Seleccione un cliente primero');
+          return;
+        }
+
+        try {
+          const response = await fetch(`/finanzas/documentos-cliente/${clienteId}`);
+          const data = await response.json();
+
+          if (data.success && data.documentos.length > 0) {
+            mostrarDocumentos(data.documentos);
+            docsContainer.style.display = 'block';
+          } else {
+            docsListado.innerHTML = '<p style="color: #999;">No hay documentos pendientes para este cliente</p>';
+            docsContainer.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al cargar documentos');
+        }
+      });
+
+      function mostrarDocumentos(documentos) {
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background-color: #f2f2f2;">';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Sel.</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Tipo</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Número</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Fecha</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Monto</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Efecto</th>';
+        html += '</tr></thead><tbody>';
+
+        documentos.forEach(doc => {
+          const fecha = new Date(doc.fechaEmision).toLocaleDateString('es-AR');
+          let tipoLabel = '';
+          let color = '';
+          let efecto = '';
+
+          if (doc.tipo === 'factura') {
+            tipoLabel = '🧾 Factura';
+            color = '#333';
+            efecto = '+';
+          } else if (doc.tipo === 'nota_credito') {
+            tipoLabel = '➖ Nota Crédito';
+            color = '#dc3545';
+            efecto = '-';
+          } else if (doc.tipo === 'nota_debito') {
+            tipoLabel = '➕ Nota Débito';
+            color = '#28a745';
+            efecto = '+';
+          }
+
+          html += '<tr>';
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><input type="checkbox" name="documentosSeleccionados" value="${doc.tipo}:${doc.id}" data-total="${doc.total}" data-tipo="${doc.tipo}" class="doc-cb"></td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd; color: ${color};">${tipoLabel}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd;">${doc.numero}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd;">${fecha}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$ ${doc.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${color}; font-weight: bold;">${efecto}</td>`;
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        docsListado.innerHTML = html;
+
+        document.querySelectorAll('.doc-cb').forEach(cb => {
+          cb.addEventListener('change', recalcularTotales);
+        });
+        recalcularTotales();
+      }
+
+      function recalcularTotales() {
+        let facturas = 0, nc = 0, nd = 0;
+        document.querySelectorAll('.doc-cb:checked').forEach(cb => {
+          const monto = parseFloat(cb.dataset.total) || 0;
+          const tipo = cb.dataset.tipo;
+          if (tipo === 'factura') facturas += monto;
+          else if (tipo === 'nota_credito') nc += monto;
+          else if (tipo === 'nota_debito') nd += monto;
+        });
+
+        const neto = facturas - nc + nd;
+        totalFacturasSpan.textContent = '$' + facturas.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        totalNCSpan.textContent = '-$' + nc.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        totalNDSpan.textContent = '+$' + nd.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        totalNetoSpan.textContent = neto.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        montoCobradoInput.value = neto.toFixed(2);
+      }
+
+      seleccionarTodosCb.addEventListener('change', () => {
+        document.querySelectorAll('.doc-cb').forEach(cb => {
+          cb.checked = seleccionarTodosCb.checked;
+        });
+        recalcularTotales();
+      });
+
+      clienteSelect.addEventListener('change', () => {
+        docsContainer.style.display = 'none';
+        docsListado.innerHTML = '<p>Seleccione un cliente y haga clic en "Cargar Documentos"</p>';
+        seleccionarTodosCb.checked = false;
+        montoCobradoInput.value = '';
+        totalFacturasSpan.textContent = '$0.00';
+        totalNCSpan.textContent = '-$0.00';
+        totalNDSpan.textContent = '+$0.00';
+        totalNetoSpan.textContent = '0.00';
+      });
+
+      // Auto-cargar si viene con cliente preseleccionado
+      if (clienteSelect.value) {
+        cargarBtn.click();
+      }
+    })();

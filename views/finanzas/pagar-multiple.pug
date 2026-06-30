@@ -1,0 +1,177 @@
+extends ../layout
+
+block contenido
+  a.btn-volver(href='/finanzas/cuentas-pagar') Volver
+
+  h1 💸 Pago Múltiple - Proveedor
+
+  p.descripcion Seleccione un proveedor para ver sus facturas pendientes. Puede seleccionar varias y pagarlas juntas generando una única Orden de Pago.
+
+  if error
+    .error-msg= error
+
+  form(action="/finanzas/pagar" method="POST" id="formPagoMultiple")
+    //- Selección de Proveedor
+    fieldset
+      legend Datos del Proveedor
+      div
+        label(for="proveedorId") Proveedor:
+        select(name="proveedorId" id="proveedorIdMulti" required)
+          option(value="") Seleccione un proveedor
+          each proveedor in proveedores
+            option(value=proveedor._id.toString() selected=(preselectedProveedorId && preselectedProveedorId == proveedor._id.toString()) || (datos && datos.proveedorId == proveedor._id.toString()))
+              | #{proveedor.tipoDoc === 'DNI' ? proveedor.nombre : proveedor.razonSocial} - #{proveedor.nroDoc}
+
+      button(type="button" id="cargarDocsProv" style="margin-top: 10px;") 📄 Cargar Facturas Pendientes
+
+    //- Listado de documentos
+    fieldset(id="docsContainerProv" style="display: none;")
+      legend Facturas Pendientes del Proveedor
+
+      div(id="docsListadoProv")
+        p Seleccione un proveedor y haga clic en "Cargar Facturas"
+
+      div(style="margin-top: 15px;")
+        label
+          input(type="checkbox" id="seleccionarTodosProv")
+          |  Seleccionar todas
+
+      //- Resumen de totales
+      div(style="margin-top: 15px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;")
+        div(style="text-align: right; font-size: 1.2rem;")
+          strong Total a Pagar: $&nbsp;
+          span(id="totalNetoProv" style="font-weight: bold; font-size: 1.3rem; color: #dc3545;") 0.00
+
+    //- Forma de Pago
+    fieldset
+      legend Forma de Pago
+      div
+        label(for="formaPago") Forma de Pago:
+        select(name="formaPago" id="formaPagoProv" required)
+          option(value="Transferencia") Transferencia
+          option(value="Efectivo") Efectivo
+          option(value="Cheque") Cheque
+          option(value="Tarjeta") Tarjeta
+
+      div
+        label(for="referencia") Referencia:
+        input(type="text" name="referencia" value=datos ? datos.referencia : '')
+
+      div
+        label(for="bancoCuenta") Banco/Cuenta:
+        input(type="text" name="bancoCuenta" value=datos ? datos.bancoCuenta : '')
+
+      div
+        label(for="fechaPago") Fecha de Pago:
+        input(type="date" name="fechaPago" required value=datos ? datos.fechaPago : new Date().toISOString().split('T')[0])
+
+      div
+        label(for="montoAPagar") Monto a Pagar:
+        input(type="number" step="0.01" name="montoAPagar" id="montoAPagarProv" readonly required style="background-color: #f5f5f5; font-weight: bold; font-size: 1.1rem;")
+
+    //- Datos adicionales
+    fieldset
+      legend Datos Adicionales
+      div
+        label(for="elaboradoPor") Elaborado Por:
+        input(type="text" name="elaboradoPor" value=datos ? datos.elaboradoPor : '')
+
+      div
+        label(for="observaciones") Observaciones:
+        textarea(name="observaciones" rows="3")= datos ? datos.observaciones : ''
+
+    div.form-actions
+      button(type="submit").btn-guardar 💸 Generar Orden de Pago
+      a(href="/finanzas/cuentas-pagar").btn-cancelar Cancelar
+
+  script.
+    (function() {
+      const proveedorSelect = document.getElementById('proveedorIdMulti');
+      const cargarBtn = document.getElementById('cargarDocsProv');
+      const docsContainer = document.getElementById('docsContainerProv');
+      const docsListado = document.getElementById('docsListadoProv');
+      const seleccionarTodosCb = document.getElementById('seleccionarTodosProv');
+      const montoInput = document.getElementById('montoAPagarProv');
+      const totalNetoSpan = document.getElementById('totalNetoProv');
+
+      cargarBtn.addEventListener('click', async () => {
+        const proveedorId = proveedorSelect.value;
+        if (!proveedorId) {
+          alert('Seleccione un proveedor primero');
+          return;
+        }
+
+        try {
+          const response = await fetch(`/finanzas/documentos-proveedor/${proveedorId}`);
+          const data = await response.json();
+
+          if (data.success && data.documentos.length > 0) {
+            mostrarDocumentos(data.documentos);
+            docsContainer.style.display = 'block';
+          } else {
+            docsListado.innerHTML = '<p style="color: #999;">No hay facturas pendientes para este proveedor</p>';
+            docsContainer.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al cargar facturas');
+        }
+      });
+
+      function mostrarDocumentos(documentos) {
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background-color: #f2f2f2;">';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Sel.</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Número</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Fecha</th>';
+        html += '<th style="padding: 8px; border: 1px solid #ddd;">Monto</th>';
+        html += '</tr></thead><tbody>';
+
+        documentos.forEach(doc => {
+          const fecha = new Date(doc.fechaEmision).toLocaleDateString('es-AR');
+          html += '<tr>';
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><input type="checkbox" name="documentosSeleccionados" value="${doc.tipo}:${doc.id}" data-total="${doc.total}" class="doc-cb-prov"></td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd;">${doc.numero}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd;">${fecha}</td>`;
+          html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$ ${doc.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>`;
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        docsListado.innerHTML = html;
+
+        document.querySelectorAll('.doc-cb-prov').forEach(cb => {
+          cb.addEventListener('change', recalcularTotal);
+        });
+        recalcularTotal();
+      }
+
+      function recalcularTotal() {
+        let total = 0;
+        document.querySelectorAll('.doc-cb-prov:checked').forEach(cb => {
+          total += parseFloat(cb.dataset.total) || 0;
+        });
+        totalNetoSpan.textContent = total.toLocaleString('es-AR', {minimumFractionDigits: 2});
+        montoInput.value = total.toFixed(2);
+      }
+
+      seleccionarTodosCb.addEventListener('change', () => {
+        document.querySelectorAll('.doc-cb-prov').forEach(cb => {
+          cb.checked = seleccionarTodosCb.checked;
+        });
+        recalcularTotal();
+      });
+
+      proveedorSelect.addEventListener('change', () => {
+        docsContainer.style.display = 'none';
+        docsListado.innerHTML = '<p>Seleccione un proveedor y haga clic en "Cargar Facturas"</p>';
+        seleccionarTodosCb.checked = false;
+        montoInput.value = '';
+        totalNetoSpan.textContent = '0.00';
+      });
+
+      // Auto-cargar si viene con proveedor preseleccionado
+      if (proveedorSelect.value) {
+        cargarBtn.click();
+      }
+    })();
