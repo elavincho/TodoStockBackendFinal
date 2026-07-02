@@ -1,7 +1,7 @@
 const Usuario = require("../models/Usuario");
 const authJWT = require("../middlewares/authJWT");
 
-//  MIDDLEWARES DE AUTENTICACIÓN (existentes)
+//  MIDDLEWARES DE AUTENTICACIÓN
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.usuario) {
     return next();
@@ -16,7 +16,7 @@ const isGuest = (req, res, next) => {
   next();
 };
 
-// NUEVO: Middleware para APIs con JWT
+// Middleware para APIs con JWT
 const isAuthenticatedAPI = authJWT.verifyToken;
 
 // CONTROLADOR DE AUTENTICACIÓN
@@ -45,10 +45,10 @@ const authController = {
 
       if (!usuario) {
         // Si es una petición API, devolver JSON
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
+        if (req.xhr || req.headers.accept?.includes("application/json")) {
           return res.status(401).json({
             success: false,
-            message: "Usuario o contraseña incorrectos"
+            message: "Usuario o contraseña incorrectos",
           });
         }
         return res.render("auth/login", {
@@ -60,10 +60,10 @@ const authController = {
 
       // Verificar si está activo
       if (!usuario.activo) {
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
+        if (req.xhr || req.headers.accept?.includes("application/json")) {
           return res.status(403).json({
             success: false,
-            message: "Usuario desactivado. Contacte al administrador"
+            message: "Usuario desactivado. Contacte al administrador",
           });
         }
         return res.render("auth/login", {
@@ -76,10 +76,10 @@ const authController = {
       // Verificar contraseña
       const isValid = await usuario.comparePassword(password);
       if (!isValid) {
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
+        if (req.xhr || req.headers.accept?.includes("application/json")) {
           return res.status(401).json({
             success: false,
-            message: "Usuario o contraseña incorrectos"
+            message: "Usuario o contraseña incorrectos",
           });
         }
         return res.render("auth/login", {
@@ -105,38 +105,38 @@ const authController = {
       // Generar token JWT
       const token = authJWT.generateToken(usuario);
 
-      // Guardar en cookie (para que funcione con navegador)
-      res.cookie('token', token, {
+      // Guardar en cookie para que funcione con navegador
+      res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
       });
 
-      // Guardar sesión (para compatibilidad con vistas)
+      // Guardar sesión para compatibilidad con vistas
       req.session.usuario = userData;
 
       // Si es petición API, devolver JSON con token
-      if (req.xhr || req.headers.accept?.includes('application/json')) {
+      if (req.xhr || req.headers.accept?.includes("application/json")) {
         return res.json({
           success: true,
           token: token,
-          usuario: userData
+          usuario: userData,
         });
       }
 
       // Para vistas normales, redirigir al dashboard
       res.redirect("/dashboard");
     } catch (error) {
-      console.error('Error en login:', error);
-      
-      if (req.xhr || req.headers.accept?.includes('application/json')) {
+      console.error("Error en login:", error);
+
+      if (req.xhr || req.headers.accept?.includes("application/json")) {
         return res.status(500).json({
           success: false,
-          message: "Error al iniciar sesión"
+          message: "Error al iniciar sesión",
         });
       }
-      
+
       res.render("auth/login", {
         titulo: "Iniciar Sesión - TodoStock S.A.",
         error: "Error al iniciar sesión. Intente nuevamente",
@@ -222,25 +222,25 @@ const authController = {
     }
   },
 
-  // MODIFICAR: Logout para eliminar token
+  // Logout para eliminar token
   logout: (req, res) => {
     // Eliminar cookie JWT
-    res.clearCookie('token');
-    
+    res.clearCookie("token");
+
     // Destruir sesión
     req.session.destroy((err) => {
       if (err) {
-        console.error('Error al destruir sesión:', err);
+        console.error("Error al destruir sesión:", err);
       }
-      
+
       // Si es petición API
-      if (req.xhr || req.headers.accept?.includes('application/json')) {
+      if (req.xhr || req.headers.accept?.includes("application/json")) {
         return res.json({
           success: true,
-          message: "Sesión cerrada exitosamente"
+          message: "Sesión cerrada exitosamente",
         });
       }
-      
+
       res.redirect("/login");
     });
   },
@@ -283,18 +283,18 @@ const authController = {
     }
   },
 
-  // NUEVO: Método para verificar token (para pruebas)
+  // Método para verificar token (para pruebas)
   verifyToken: async (req, res) => {
     try {
       // Este método usa el middleware authJWT.verifyToken
       res.json({
         success: true,
-        usuario: req.usuario
+        usuario: req.usuario,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Error al verificar token"
+        message: "Error al verificar token",
       });
     }
   },
@@ -306,31 +306,31 @@ const authController = {
       if (!usuario) {
         return res.status(404).json({
           success: false,
-          message: "Usuario no encontrado"
+          message: "Usuario no encontrado",
         });
       }
 
       const newToken = authJWT.generateToken(usuario);
-      
+
       // Actualizar cookie
-      res.cookie('token', newToken, {
+      res.cookie("token", newToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
       res.json({
         success: true,
-        token: newToken
+        token: newToken,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Error al renovar token"
+        message: "Error al renovar token",
       });
     }
-  }
+  },
 };
 
 // Exportar el controlador Y los middlewares
@@ -338,5 +338,5 @@ module.exports = {
   authController,
   isAuthenticated,
   isGuest,
-  isAuthenticatedAPI, // NUEVO: para usar en rutas API
+  isAuthenticatedAPI, // para usar en rutas API
 };
